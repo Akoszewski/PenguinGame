@@ -1,0 +1,2 @@
+Arkadiusz:
+- Reading arguments from command line
