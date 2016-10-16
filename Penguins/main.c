@@ -37,15 +37,11 @@ struct Penguin penguin;
 
 bool ReadArgs(int argc, char* argv[])
 {
-    if(argc < 5)  // argc is number of parameters but there is one default parameter (arg[0]) that's why it's 5 not 4
+
+    if(argc < 2)
     {
-        if(argc < 2)
-        {
-            printf("No parameters passed. The program will be opened in interactive mode.\n\n");
-            return false;
-        }
-        printf("Wrong number of parameters (required is 4)\n\n");
-        exit(0);
+        printf("No parameters passed. The program will be opened in interactive mode.\n\n");
+        return false;
     }
     if(strcmp(argv[1], "phase=placement") == 0) // 0 means the strings are equal
     {
@@ -60,17 +56,25 @@ bool ReadArgs(int argc, char* argv[])
         printf("Wrong input (first parameter invalid)\n");
         exit(0);
     }
-    if(strncmp(argv[2], "penguins=", 9) == 0) // if first 9 letters are equal to "penguins="
+    if(phase == placement)
     {
-        penguins = atoi(&argv[2][9]); // convert numbers after "=" to int and assign it to penguins
+        if(strncmp(argv[2], "penguins=", 9) == 0) // if first 9 letters are equal to "penguins="
+        {
+            penguins = atoi(&argv[2][9]); // convert numbers after "=" to int and assign it to penguins
+        }
+        else
+        {
+            printf("Wrong input (second parameter invalid)\n");
+            exit(0);
+        }
+        strcpy(inputboardfile, argv[3]); // copy argv[3] to inputboardfile
+        strcpy(outputboardfile, argv[4]);
     }
     else
     {
-        printf("Wrong input (second parameter invalid)\n");
-        exit(0);
+        strcpy(inputboardfile, argv[2]); // copy argv[3] to inputboardfile
+        strcpy(outputboardfile, argv[3]);
     }
-    strcpy(inputboardfile, argv[3]); // copy argv[3] to inputboardfile
-    strcpy(outputboardfile, argv[4]);
     return true;
 }
 
