@@ -86,8 +86,12 @@ void UpdatePenguinPosition(struct Penguin* penguin, int new_x, int new_y)
 
 bool IsMoveValid()
 {
-    // TODO: if move is impossible return false
-    return true;
+    // TODO: if movement is impossible return false
+    if(new_x >= rows || new_y >= cols)
+    {
+        return false;
+    }
+    else return true;
 }
 
 void ReadMovement()
@@ -143,6 +147,10 @@ int main(int argc, char* argv[])
             if(IsMoveValid())
             {
                 UpdatePenguinPosition(&penguin, new_x, new_y);
+            }
+            else
+            {
+                printf("Invalid movment\n");
             }
             printf("Your position is: %d, %d\n\n", penguin.x, penguin.y);
         }
