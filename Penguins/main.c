@@ -10,7 +10,8 @@ enum Phase
     movement
 } phase;
 
-int penguinsNum = 0; // number of penguins
+int playersNumber;
+int penguinsNumber; // number of penguins for each player
 char inputboardfile[64];
 char outputboardfile[64];
 
@@ -22,36 +23,48 @@ int new_y;
 
 int turns;
 
+/*struct Movement
+{
+    int penguinNumber;
+    int new_x;
+    int new_y;
+};
+*/
 struct Penguin
 {
     bool blocked;
     int x, y;
 };
 
-struct Player
+/*struct Player
 {
     bool lost;
     struct Penguin* penguins;
 };
+*/
 
-struct Floe
+/*struct Floe
 {
     bool exists;
     int fishes;
-};
+};*/
+
+/*int GetNeighbouringCoord(enum Direction direction)
+{
+    return coords;
+}*/
 
 void ReadIntWithMessage(char* message, int* number)
 {
     printf("%s", message);
 
     fseek(stdin, 0, SEEK_END); // clears stdin
-    while(!scanf("%d", number)) // while scanf returned 0 execute loop
+    while(!scanf("%d", number)) // while scanf returned 0 (errror) execute loop
     {
         printf("Invalid input! Type an integer: ");
         fseek(stdin, 0, SEEK_END);
     }
 }
-
 
 bool ReadArgs(int argc, char* argv[])
 {
@@ -78,7 +91,7 @@ bool ReadArgs(int argc, char* argv[])
     {
         if(strncmp(argv[2], "penguins=", 9) == 0) // if first 9 letters are equal to "penguins="
         {
-            penguinsNum = atoi(&argv[2][9]); // convert numbers after "=" to int and assign it to penguinsNum
+            penguinsNumber = atoi(&argv[2][9]); // convert numbers after "=" to int and assign it to penguinsNum
         }
         else
         {
@@ -96,8 +109,10 @@ bool ReadArgs(int argc, char* argv[])
     return true;
 }
 
-void UpdatePenguinPosition(struct Penguin* penguin, int new_x, int new_y)
+void UpdatePenguinPosition(struct Penguin* penguin, int floes[rows][cols], int index, int new_x, int new_y) // index is index of penguin
 {
+    floes[penguin->x][penguin->y] = 0; // old floe disappears
+    floes[new_x][new_y] = 3 + 1 + index;
     penguin->x = new_x;
     penguin->y = new_y;
 }
@@ -130,28 +145,49 @@ int main(int argc, char* argv[])
 {
     if( ReadArgs(argc, argv) )
     {
-        //Normal mode
+        //Batch mode
+
+        // Very early sketch
+
+        //ReadBoard();
+        if (phase == placement)
+        {
+            //ChooseBestPlacement();   // number of fishes on floe must be equal to 1 !!!
+            //UpdatePenguinPosition();
+            //UpdateBoard();
+        }
+        else
+        {
+            //ChooseBestMovement();  // the more fishes the better
+            //UpdatePenguinPosition();
+            //UpdateBoard();
+        }
+        // QUESTION - HOW TO FIGURE OUT WHICH PLAYER NUMBER IS OURS (AND WHICH PENGUINS) maybe board1 as inputboard means we are the 1 etc.
 
         // remove later
         if(phase == movement) printf("Phase is: movement\n");
         else printf("Phase is: placement\n");
-        printf("Penguins number is: %d\n", penguinsNum);
+        printf("Penguins number is: %d\n", penguinsNumber);
         printf("Input file is: %s\n", inputboardfile);
         printf("Output file is: %s\n", outputboardfile);
+
     }
     else
     {
         // Interactive mode
 
+
         cols = 10;
         rows = 10;
-        struct Floe floes[rows][cols];
+        int floes[rows][cols];
 
+        ReadIntWithMessage("Type number of players: ", &playersNumber);
+        ReadIntWithMessage("Type number of penguins for every player: ", &penguinsNumber);
         ReadIntWithMessage("Type number of turns: ", &turns);
         printf("\n");
 
-        struct Penguin* penguins;
-        penguins = (struct Penguin*)malloc(4*sizeof(struct Penguin)); // creates 4 penguins
+        struct Penguin penguins[penguinsNumber*playersNumber];
+
         penguins[0].x = 0;
         penguins[0].y = 0;
 
@@ -161,7 +197,7 @@ int main(int argc, char* argv[])
             ReadMovement();
             if(IsMoveValid())
             {
-                UpdatePenguinPosition(&penguins[0], new_x, new_y);
+                UpdatePenguinPosition(&penguins[0], floes, 0, new_x, new_y);
             }
             else
             {
@@ -169,7 +205,6 @@ int main(int argc, char* argv[])
             }
             printf("Your position is: %d, %d\n\n", penguins[0].x, penguins[0].y);
         }
-        free(penguins); // free the memory
     }
     return 0;
 }
