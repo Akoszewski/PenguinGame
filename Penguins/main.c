@@ -22,16 +22,36 @@ int new_y;
 
 int turns;
 
+struct Penguin
+{
+    bool blocked;
+    int x, y;
+};
+
+struct Player
+{
+    bool lost;
+    struct Penguin* penguins;
+};
+
 struct Floe
 {
     bool exists;
     int fishes;
 };
 
-struct Penguin
+void ReadIntWithMessage(char* message, int* number)
 {
-    int x, y;
-};
+    printf("%s", message);
+
+    fseek(stdin, 0, SEEK_END); // clears stdin
+    while(!scanf("%d", number)) // while scanf returned 0 execute loop
+    {
+        printf("Invalid input! Type an integer: ");
+        fseek(stdin, 0, SEEK_END);
+    }
+}
+
 
 bool ReadArgs(int argc, char* argv[])
 {
@@ -70,7 +90,7 @@ bool ReadArgs(int argc, char* argv[])
     }
     else
     {
-        strcpy(inputboardfile, argv[2]); // copy argv[3] to inputboardfile
+        strcpy(inputboardfile, argv[2]); // copy argv[2] to inputboardfile
         strcpy(outputboardfile, argv[3]);
     }
     return true;
@@ -94,10 +114,8 @@ bool IsMoveValid()
 
 void ReadMovement()
 {
-    printf("Type new penguin x: ");
-    scanf("%d", &new_x);
-    printf("Type new penguin y: ");
-    scanf("%d", &new_y);
+    ReadIntWithMessage("Type new penguin x: ", &new_x);
+    ReadIntWithMessage("Type new penguin y: ", &new_y);
 }
 
 bool EndGame()
@@ -125,14 +143,17 @@ int main(int argc, char* argv[])
     {
         // Interactive mode
 
-        cols = 10; rows = 10;
+        cols = 10;
+        rows = 10;
         struct Floe floes[rows][cols];
 
-        printf("Type number of turns: ");
-        scanf("%d", &turns);
+        ReadIntWithMessage("Type number of turns: ", &turns);
         printf("\n");
 
-        struct Penguin penguins[4];
+        struct Penguin* penguins;
+        penguins = (struct Penguin*)malloc(4*sizeof(struct Penguin)); // creates 4 penguins
+        penguins[0].x = 0;
+        penguins[0].y = 0;
 
         printf("Your position is: %d, %d\n\n", penguins[0].x, penguins[0].y);
         while (!EndGame())
@@ -148,6 +169,7 @@ int main(int argc, char* argv[])
             }
             printf("Your position is: %d, %d\n\n", penguins[0].x, penguins[0].y);
         }
+        free(penguins); // free the memory
     }
     return 0;
 }
