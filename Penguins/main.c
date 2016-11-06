@@ -15,13 +15,19 @@ int penguinsNumber; // number of penguins for each player
 char inputboardfile[64];
 char outputboardfile[64];
 
-int rows; // number of rows
 int cols; // number of columns
+int rows; // number of rows
 
 int new_x;
 int new_y;
 
 int turns;
+
+struct Penguin
+{
+    bool blocked;
+    int x, y;
+};
 
 /*struct Movement
 {
@@ -30,12 +36,6 @@ int turns;
     int new_y;
 };
 */
-struct Penguin
-{
-    bool blocked;
-    int x, y;
-};
-
 /*struct Player
 {
     bool lost;
@@ -43,27 +43,28 @@ struct Penguin
 };
 */
 
-/*struct Floe
-{
-    bool exists;
-    int fishes;
-};*/
-
 /*int GetNeighbouringCoord(enum Direction direction)
 {
     return coords;
 }*/
 
-void ReadIntWithMessage(char* message, int* number)
+int ReadIntWithMessage(char* message)
 {
+    int number;
     printf("%s", message);
 
     fseek(stdin, 0, SEEK_END); // clears stdin
-    while(!scanf("%d", number)) // while scanf returned 0 (errror) execute loop
+    while(!scanf("%d", &number)) // while scanf returned 0 (errror) execute loop
     {
         printf("Invalid input! Type an integer: ");
         fseek(stdin, 0, SEEK_END);
     }
+    return number;
+}
+
+void PrintBoard(int floes[cols][rows])
+{
+    // Print board to screen
 }
 
 bool ReadArgs(int argc, char* argv[])
@@ -109,10 +110,10 @@ bool ReadArgs(int argc, char* argv[])
     return true;
 }
 
-void UpdatePenguinPosition(struct Penguin* penguin, int floes[rows][cols], int index, int new_x, int new_y) // index is index of penguin
+void UpdatePenguinPosition(struct Penguin* penguin, int floes[cols][rows], int index, int new_x, int new_y) // index is index of penguin
 {
     floes[penguin->x][penguin->y] = 0; // old floe disappears
-    floes[new_x][new_y] = 3 + 1 + index;
+    floes[new_x][new_y] = 3 + 1 + index; // place penguin on new field
     penguin->x = new_x;
     penguin->y = new_y;
 }
@@ -120,7 +121,7 @@ void UpdatePenguinPosition(struct Penguin* penguin, int floes[rows][cols], int i
 bool IsMoveValid()
 {
     // if movement is impossible return false
-    if(new_x >= rows || new_y >= cols)
+    if(new_x >= cols || new_y >= rows)
     {
         return false;
     }
@@ -129,8 +130,8 @@ bool IsMoveValid()
 
 void ReadMovement()
 {
-    ReadIntWithMessage("Type new penguin x: ", &new_x);
-    ReadIntWithMessage("Type new penguin y: ", &new_y);
+    new_x = ReadIntWithMessage("Type new penguin x: ");
+    new_y = ReadIntWithMessage("Type new penguin y: ");
 }
 
 bool EndGame()
@@ -162,7 +163,6 @@ int main(int argc, char* argv[])
             //UpdatePenguinPosition();
             //UpdateBoard();
         }
-        // QUESTION - HOW TO FIGURE OUT WHICH PLAYER NUMBER IS OURS (AND WHICH PENGUINS) maybe board1 as inputboard means we are the 1 etc.
 
         // remove later
         if(phase == movement) printf("Phase is: movement\n");
@@ -177,16 +177,16 @@ int main(int argc, char* argv[])
         // Interactive mode
 
 
-        cols = 10;
         rows = 10;
-        int floes[rows][cols];
+        cols = 10;
+        int floes[cols][rows];
 
-        ReadIntWithMessage("Type number of players: ", &playersNumber);
-        ReadIntWithMessage("Type number of penguins for every player: ", &penguinsNumber);
-        ReadIntWithMessage("Type number of turns: ", &turns);
+        playersNumber = ReadIntWithMessage("Type number of players: ");
+        penguinsNumber = ReadIntWithMessage("Type number of penguins for every player: ");
+        turns = ReadIntWithMessage("Type number of turns: ");
         printf("\n");
 
-        struct Penguin penguins[penguinsNumber*playersNumber];
+        struct Penguin penguins[4];
 
         penguins[0].x = 0;
         penguins[0].y = 0;
@@ -197,13 +197,14 @@ int main(int argc, char* argv[])
             ReadMovement();
             if(IsMoveValid())
             {
-                UpdatePenguinPosition(&penguins[0], floes, 0, new_x, new_y);
+                UpdatePenguinPosition(&penguins[0], floes, 0, new_x, new_y); // penguin by reference, tab with floes, index of penguin, new coordinates
             }
             else
             {
                 printf("Invalid movment\n");
             }
             printf("Your position is: %d, %d\n\n", penguins[0].x, penguins[0].y);
+            PrintBoard(floes);
         }
     }
     return 0;
