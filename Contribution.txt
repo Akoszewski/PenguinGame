@@ -1,2 +1,10 @@
 Arkadiusz:
 - Reading arguments from command line
+- Main loop for Interactive Mode
+
+Aghiad:
+- Printing board to screen
+- Enum for walking
+
+Mateusz:
+- Reading board from file
