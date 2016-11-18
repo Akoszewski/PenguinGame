@@ -10,6 +10,16 @@ enum Phase
     movement
 } phase;
 
+enum Direction
+{
+    left,
+    leftUp,
+    leftDown,
+    right,
+    rightUp,
+    rightDown,
+};
+
 int playersNumber;
 int penguinsNumber; // number of penguins for each player
 char inputboardfile[64];
@@ -22,6 +32,11 @@ int new_x;
 int new_y;
 
 int turns;
+
+struct Coordinates
+{
+    int x, y;
+};
 
 struct Penguin
 {
@@ -43,10 +58,39 @@ struct Penguin
 };
 */
 
-/*int GetNeighbouringCoord(enum Direction direction)
+struct Coordinates GetNeighbouringCoord(struct Coordinates curr, enum Direction direction)
 {
-    return coords;
-}*/
+    struct Coordinates new_coords;
+
+    switch(direction)
+    {
+    case right:
+        new_coords.x = curr.x + 1;
+        new_coords.y = curr.y;
+        break;
+    case left:
+        new_coords.x = curr.x - 1;
+        new_coords.y = curr.y;
+        break;
+    case rightUp:
+        new_coords.x = curr.x + 1;
+        new_coords.y = curr.x + 1;
+        break;
+    case rightDown:
+        new_coords.x = curr.x + 1;
+        new_coords.y = curr.x - 1;
+        break;
+    case leftUp:
+        new_coords.x = curr.x - 1;
+        new_coords.y = curr.x + 1;
+        break;
+    case leftDown:
+        new_coords.x = curr.x - 1;
+        new_coords.y = curr.x - 1;
+        break;
+    }
+    return new_coords;
+}
 
 int ReadIntWithMessage(char* message)
 {
@@ -62,9 +106,35 @@ int ReadIntWithMessage(char* message)
     return number;
 }
 
+void InitBoard(int floes[cols][rows])
+{
+    int r,c;
+    for( r = 0; r < rows; r++)
+    {
+        for(c = 0; c < cols; c++)
+        {
+            floes[r][c] = 1;
+        }
+    }
+}
+
 void PrintBoard(int floes[cols][rows])
 {
-    // Print board to screen
+    //system("cls");
+    int c,r;
+    printf("\n");
+
+    for( r = 0; r < rows; r++)
+    {
+        if(r%2 == 1) printf(" ");
+        for(c = 0; c < cols; c++)
+        {
+            printf("%d",floes[c][r]);
+            printf(" ");
+        }
+        printf("\n");
+    }
+    printf("\n");
 }
 
 bool ReadArgs(int argc, char* argv[])
@@ -181,6 +251,8 @@ int main(int argc, char* argv[])
         cols = 10;
         int floes[cols][rows];
 
+        InitBoard(floes);
+
         playersNumber = ReadIntWithMessage("Type number of players: ");
         penguinsNumber = ReadIntWithMessage("Type number of penguins for every player: ");
         turns = ReadIntWithMessage("Type number of turns: ");
@@ -203,10 +275,9 @@ int main(int argc, char* argv[])
             {
                 printf("Invalid movment\n");
             }
-            printf("Your position is: %d, %d\n\n", penguins[0].x, penguins[0].y);
+            //printf("Your position is: %d, %d\n\n", penguins[0].x, penguins[0].y);
             PrintBoard(floes);
         }
     }
     return 0;
 }
-
