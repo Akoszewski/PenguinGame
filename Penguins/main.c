@@ -106,6 +106,36 @@ int ReadIntWithMessage(char* message)
     return number;
 }
 
+enum Direction ReadDirectionWithMessage(char* message)
+{
+    char input[3] = {' ', ' ', '\0'};
+    printf(message);
+    bool failed = false;
+    do
+    {
+        fseek(stdin, 0, SEEK_END); // clears stdin
+        fgets(input, sizeof(input), stdin);
+
+        if(input[0] == 'L' && input[1] == '\n' || input[0] == 'l' && input[1] == '\n')
+            return left;
+        if(input[0] == 'L' && input[1] == 'U' || input[0] == 'l' && input[1] == 'u')
+            return leftUp;
+        if(input[0] == 'L' && input[1] == 'D' || input[0] == 'l' && input[1] == 'd')
+            return leftDown;
+        if(input[0] == 'R' && input[1] == '\n' || input[0] == 'r' && input[1] == '\n')
+            return right;
+        if(input[0] == 'R' && input[1] == 'U' || input[0] == 'r' && input[1] == 'u')
+            return rightUp;
+        if(input[0] == 'R' && input[1] == 'D' || input[0] == 'r' && input[1] == 'd')
+            return rightDown;
+        else
+        {
+            printf("Wrong input! Try again: ");
+            failed = true;
+        }
+    } while (failed);
+}
+
 void InitBoard(int floes[cols][rows])
 {
     int r,c;
@@ -113,14 +143,14 @@ void InitBoard(int floes[cols][rows])
     {
         for(c = 0; c < cols; c++)
         {
-            floes[r][c] = 1;
+            floes[c][r] = 1;
         }
     }
 }
 
 void PrintBoard(int floes[cols][rows])
 {
-    //system("cls");
+    system("cls");
     int c,r;
     printf("\n");
 
@@ -133,9 +163,11 @@ void PrintBoard(int floes[cols][rows])
             printf(" ");
         }
         printf("\n");
+        printf("\n");
     }
     printf("\n");
 }
+
 
 bool ReadArgs(int argc, char* argv[])
 {
@@ -200,6 +232,10 @@ bool IsMoveValid()
 
 void ReadMovement()
 {
+    //enum Direction direction;
+    //int jumps;
+    //direction = ReadDirectionWithMessage("Type direction of movement: ");
+    //jumps = ReadIntWithMessage("Type number of jumps: ");
     new_x = ReadIntWithMessage("Type new penguin x: ");
     new_y = ReadIntWithMessage("Type new penguin y: ");
 }
@@ -263,7 +299,8 @@ int main(int argc, char* argv[])
         penguins[0].x = 0;
         penguins[0].y = 0;
 
-        printf("Your position is: %d, %d\n\n", penguins[0].x, penguins[0].y);
+        //printf("Your position is: %d, %d\n\n", penguins[0].x, penguins[0].y);
+        PrintBoard(floes);
         while (!EndGame())
         {
             ReadMovement();
@@ -279,5 +316,7 @@ int main(int argc, char* argv[])
             PrintBoard(floes);
         }
     }
+    printf("End of the game. Type any key to exit\n");
+    getch();
     return 0;
 }
