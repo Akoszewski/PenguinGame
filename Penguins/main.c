@@ -28,9 +28,6 @@ char outputboardfile[64];
 int cols; // number of columns
 int rows; // number of rows
 
-int new_x;
-int new_y;
-
 int turns;
 
 struct Coordinates
@@ -58,38 +55,47 @@ struct Penguin
 };
 */
 
-struct Coordinates GetNeighbouringCoord(struct Coordinates curr, enum Direction direction)
+bool ReadArgs(int argc, char* argv[])
 {
-    struct Coordinates new_coords;
 
-    switch(direction)
+    if(argc < 2)
     {
-    case right:
-        new_coords.x = curr.x + 1;
-        new_coords.y = curr.y;
-        break;
-    case left:
-        new_coords.x = curr.x - 1;
-        new_coords.y = curr.y;
-        break;
-    case rightUp:
-        new_coords.x = curr.x + 1;
-        new_coords.y = curr.x + 1;
-        break;
-    case rightDown:
-        new_coords.x = curr.x + 1;
-        new_coords.y = curr.x - 1;
-        break;
-    case leftUp:
-        new_coords.x = curr.x - 1;
-        new_coords.y = curr.x + 1;
-        break;
-    case leftDown:
-        new_coords.x = curr.x - 1;
-        new_coords.y = curr.x - 1;
-        break;
+        printf("No parameters passed. The program will be opened in interactive mode.\n\n");
+        return false;
     }
-    return new_coords;
+    if(strcmp(argv[1], "phase=placement") == 0) // 0 means the strings are equal
+    {
+        phase = placement;
+    }
+    else if(strcmp(argv[1], "phase=movement") == 0)
+    {
+        phase = movement;
+    }
+    else
+    {
+        printf("Wrong input (first parameter invalid)\n");
+        exit(0);
+    }
+    if(phase == placement)
+    {
+        if(strncmp(argv[2], "penguins=", 9) == 0) // if first 9 letters are equal to "penguins="
+        {
+            penguinsNumber = atoi(&argv[2][9]); // convert numbers after "=" to int and assign it to penguinsNum
+        }
+        else
+        {
+            printf("Wrong input (second parameter invalid)\n");
+            exit(0);
+        }
+        strcpy(inputboardfile, argv[3]); // copy argv[3] to inputboardfile
+        strcpy(outputboardfile, argv[4]);
+    }
+    else
+    {
+        strcpy(inputboardfile, argv[2]); // copy argv[2] to inputboardfile
+        strcpy(outputboardfile, argv[3]);
+    }
+    return true;
 }
 
 int ReadIntWithMessage(char* message)
@@ -150,7 +156,7 @@ void InitBoard(int floes[cols][rows])
 
 void PrintBoard(int floes[cols][rows])
 {
-    system("cls");
+    //system("cls");
     int c,r;
     printf("\n");
 
@@ -168,48 +174,71 @@ void PrintBoard(int floes[cols][rows])
     printf("\n");
 }
 
-
-bool ReadArgs(int argc, char* argv[])
+struct Coordinates GetNeighbouringCoord(struct Coordinates curr, enum Direction direction)
 {
+    struct Coordinates new_coords;
+     new_coords.x = curr.x;
+     new_coords.y = curr.y;
 
-    if(argc < 2)
+    switch(direction)
     {
-        printf("No parameters passed. The program will be opened in interactive mode.\n\n");
-        return false;
-    }
-    if(strcmp(argv[1], "phase=placement") == 0) // 0 means the strings are equal
-    {
-        phase = placement;
-    }
-    else if(strcmp(argv[1], "phase=movement") == 0)
-    {
-        phase = movement;
-    }
-    else
-    {
-        printf("Wrong input (first parameter invalid)\n");
-        exit(0);
-    }
-    if(phase == placement)
-    {
-        if(strncmp(argv[2], "penguins=", 9) == 0) // if first 9 letters are equal to "penguins="
+    case right:
+        new_coords.x = curr.x + 1;
+        break;
+    case left:
+        new_coords.x = curr.x - 1;
+        break;
+    case rightUp:
+        if(curr.y%2 == 0)
         {
-            penguinsNumber = atoi(&argv[2][9]); // convert numbers after "=" to int and assign it to penguinsNum
+            new_coords.y = curr.y - 1;
         }
         else
         {
-            printf("Wrong input (second parameter invalid)\n");
-            exit(0);
+            new_coords.x = curr.x + 1;
+            new_coords.y = curr.y - 1;
         }
-        strcpy(inputboardfile, argv[3]); // copy argv[3] to inputboardfile
-        strcpy(outputboardfile, argv[4]);
+        break;
+    case rightDown:
+        if(curr.y%2 == 0)  // if current column is even
+        {
+            new_coords.y = curr.y + 1;
+        }
+        else
+        {
+            new_coords.x = curr.x + 1;
+            new_coords.y = curr.y + 1;
+        }
+        break;
+    case leftUp:
+        if(curr.y%2 == 0)
+        {
+            new_coords.x = curr.x - 1;
+            new_coords.y = curr.y - 1;
+        }
+        else
+        {
+            new_coords.y = curr.y - 1;
+        }
+        break;
+    case leftDown:
+        if(curr.y%2 == 0)
+        {
+            new_coords.x = curr.x - 1;
+            new_coords.y = curr.y + 1;
+        }
+        else
+        {
+            new_coords.y = curr.y + 1;
+        }
+        break;
     }
-    else
-    {
-        strcpy(inputboardfile, argv[2]); // copy argv[2] to inputboardfile
-        strcpy(outputboardfile, argv[3]);
-    }
-    return true;
+    return new_coords;
+}
+
+bool MovePenguin()
+{
+
 }
 
 void UpdatePenguinPosition(struct Penguin* penguin, int floes[cols][rows], int index, int new_x, int new_y) // index is index of penguin
@@ -220,24 +249,20 @@ void UpdatePenguinPosition(struct Penguin* penguin, int floes[cols][rows], int i
     penguin->y = new_y;
 }
 
-bool IsMoveValid()
+bool IsMoveValid(struct Coordinates new_coords)
 {
     // if movement is impossible return false
-    if(new_x >= cols || new_y >= rows)
+    if(new_coords.x >= cols || new_coords.y >= rows || new_coords.x < 0 || new_coords.y < 0)
     {
         return false;
     }
     else return true;
 }
 
-void ReadMovement()
+void ReadMovement(enum Direction* direction, int* jumps)
 {
-    //enum Direction direction;
-    //int jumps;
-    //direction = ReadDirectionWithMessage("Type direction of movement: ");
-    //jumps = ReadIntWithMessage("Type number of jumps: ");
-    new_x = ReadIntWithMessage("Type new penguin x: ");
-    new_y = ReadIntWithMessage("Type new penguin y: ");
+    *direction = ReadDirectionWithMessage("Type direction of movement: ");
+    *jumps = ReadIntWithMessage("Type number of jumps: ");
 }
 
 bool EndGame()
@@ -289,9 +314,10 @@ int main(int argc, char* argv[])
 
         InitBoard(floes);
 
-        playersNumber = ReadIntWithMessage("Type number of players: ");
-        penguinsNumber = ReadIntWithMessage("Type number of penguins for every player: ");
-        turns = ReadIntWithMessage("Type number of turns: ");
+        //playersNumber = ReadIntWithMessage("Type number of players: ");
+        //penguinsNumber = ReadIntWithMessage("Type number of penguins for every player: ");
+        //turns = ReadIntWithMessage("Type number of turns: ");
+        turns = 10;
         printf("\n");
 
         struct Penguin penguins[4];
@@ -300,20 +326,37 @@ int main(int argc, char* argv[])
         penguins[0].y = 0;
 
         //printf("Your position is: %d, %d\n\n", penguins[0].x, penguins[0].y);
-        PrintBoard(floes);
         while (!EndGame())
         {
-            ReadMovement();
-            if(IsMoveValid())
+            struct Coordinates new_coords = { penguins[0].x, penguins[0].y };
+            enum Direction direction;
+            int jumps;
+            ReadMovement(&direction, &jumps);
+            while(jumps > 0)
             {
-                UpdatePenguinPosition(&penguins[0], floes, 0, new_x, new_y); // penguin by reference, tab with floes, index of penguin, new coordinates
+                new_coords = GetNeighbouringCoord(new_coords, direction);
+                if(floes[new_coords.x][new_coords.y] == 0 || floes[new_coords.x][new_coords.y] > 3)
+                {
+                    new_coords.x = penguins[0].x; // back to initial values
+                    new_coords.y = penguins[0].y;
+                    printf("You can't move there!\n"); // TODO: We have to addd something like "try again: " in loop
+                    break;
+                }
+                jumps--;
+            }
+            printf("Your position is: %d, %d\n\n", new_coords.x, new_coords.y);
+
+            if(IsMoveValid(new_coords))
+            {
+                UpdatePenguinPosition(&penguins[0], floes, 0, new_coords.x, new_coords.y); // penguin by reference, tab with floes, index of penguin, new coordinates
             }
             else
             {
                 printf("Invalid movment\n");
             }
-            //printf("Your position is: %d, %d\n\n", penguins[0].x, penguins[0].y);
             PrintBoard(floes);
+            //printf("Your position is: %d, %d\n\n", penguins[0].x, penguins[0].y);
+            //PrintBoard(floes);
         }
     }
     printf("End of the game. Type any key to exit\n");
