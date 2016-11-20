@@ -236,11 +236,6 @@ struct Coordinates GetNeighbouringCoord(struct Coordinates curr, enum Direction 
     return new_coords;
 }
 
-bool MovePenguin()
-{
-
-}
-
 void UpdatePenguinPosition(struct Penguin* penguin, int floes[cols][rows], int index, int new_x, int new_y) // index is index of penguin
 {
     floes[penguin->x][penguin->y] = 0; // old floe disappears
@@ -249,14 +244,18 @@ void UpdatePenguinPosition(struct Penguin* penguin, int floes[cols][rows], int i
     penguin->y = new_y;
 }
 
-bool IsMoveValid(struct Coordinates new_coords)
+bool IsMoveValid(int floes[cols][rows], struct Penguin penguin, enum Direction direction, int jumps, struct Coordinates* new_coords)
 {
-    // if movement is impossible return false
-    if(new_coords.x >= cols || new_coords.y >= rows || new_coords.x < 0 || new_coords.y < 0)
+    while(jumps > 0)
     {
-        return false;
+        *new_coords = GetNeighbouringCoord(*new_coords, direction);
+        if(floes[new_coords->x][new_coords->y] == 0 || floes[new_coords->x][new_coords->y] > 3 || new_coords->x >= cols || new_coords->y >= rows || new_coords->x < 0 || new_coords->y < 0)
+        {
+            return false;
+        }
+        jumps--;
     }
-    else return true;
+    return true;
 }
 
 void ReadMovement(enum Direction* direction, int* jumps)
@@ -320,7 +319,7 @@ int main(int argc, char* argv[])
         turns = 10;
         printf("\n");
 
-        struct Penguin penguins[4];
+        struct Penguin penguins[1];
 
         penguins[0].x = 0;
         penguins[0].y = 0;
@@ -331,22 +330,9 @@ int main(int argc, char* argv[])
             struct Coordinates new_coords = { penguins[0].x, penguins[0].y };
             enum Direction direction;
             int jumps;
-            ReadMovement(&direction, &jumps);
-            while(jumps > 0)
-            {
-                new_coords = GetNeighbouringCoord(new_coords, direction);
-                if(floes[new_coords.x][new_coords.y] == 0 || floes[new_coords.x][new_coords.y] > 3)
-                {
-                    new_coords.x = penguins[0].x; // back to initial values
-                    new_coords.y = penguins[0].y;
-                    printf("You can't move there!\n"); // TODO: We have to addd something like "try again: " in loop
-                    break;
-                }
-                jumps--;
-            }
-            printf("Your position is: %d, %d\n\n", new_coords.x, new_coords.y);
 
-            if(IsMoveValid(new_coords))
+            ReadMovement(&direction, &jumps);
+            if(IsMoveValid(floes, penguins[0], direction, jumps, &new_coords))
             {
                 UpdatePenguinPosition(&penguins[0], floes, 0, new_coords.x, new_coords.y); // penguin by reference, tab with floes, index of penguin, new coordinates
             }
@@ -363,3 +349,4 @@ int main(int argc, char* argv[])
     getch();
     return 0;
 }
+
