@@ -236,7 +236,7 @@ struct Coordinates GetNeighbouringCoord(struct Coordinates curr, enum Direction 
     return new_coords;
 }
 
-void UpdatePenguinPosition(struct Penguin* penguin, int floes[cols][rows], int index, int new_x, int new_y) // index is index of penguin
+void UpdatePenguinPosition(int floes[cols][rows], struct Penguin* penguin, int index, int new_x, int new_y) // index is index of penguin
 {
     floes[penguin->x][penguin->y] = 0; // old floe disappears
     floes[new_x][new_y] = 3 + 1 + index; // place penguin on new field
@@ -244,7 +244,7 @@ void UpdatePenguinPosition(struct Penguin* penguin, int floes[cols][rows], int i
     penguin->y = new_y;
 }
 
-bool IsMoveValid(int floes[cols][rows], struct Penguin penguin, enum Direction direction, int jumps, struct Coordinates* new_coords)
+bool TryMovePenguin(int floes[cols][rows], struct Penguin penguin, enum Direction direction, int jumps, struct Coordinates* new_coords)
 {
     while(jumps > 0)
     {
@@ -332,9 +332,9 @@ int main(int argc, char* argv[])
             int jumps;
 
             ReadMovement(&direction, &jumps);
-            if(IsMoveValid(floes, penguins[0], direction, jumps, &new_coords))
+            if(TryMovePenguin(floes, penguins[0], direction, jumps, &new_coords))
             {
-                UpdatePenguinPosition(&penguins[0], floes, 0, new_coords.x, new_coords.y); // penguin by reference, tab with floes, index of penguin, new coordinates
+                UpdatePenguinPosition(floes, &penguins[0], 0, new_coords.x, new_coords.y); // tab with floes, penguin by reference, index of penguin, new coordinates
             }
             else
             {
