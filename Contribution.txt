@@ -1,6 +1,6 @@
 Arkadiusz:
 - Reading arguments from command line
-- Main loop for Interactive Mode
+- Moving penguin
 
 Aghiad:
 - Printing board to screen
