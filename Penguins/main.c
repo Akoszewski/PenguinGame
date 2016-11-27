@@ -142,18 +142,6 @@ enum Direction ReadDirectionWithMessage(char* message)
     } while (failed);
 }
 
-void InitBoard(int floes[cols][rows])
-{
-    int r,c;
-    for( r = 0; r < rows; r++)
-    {
-        for(c = 0; c < cols; c++)
-        {
-            floes[c][r] = 1;
-        }
-    }
-}
-
 void PrintBoard(int floes[cols][rows])
 {
     //system("cls");
@@ -168,7 +156,7 @@ void PrintBoard(int floes[cols][rows])
             printf("%d",floes[c][r]);
             printf(" ");
         }
-        printf("\n");
+       // printf("\n");
         printf("\n");
     }
     printf("\n");
@@ -272,6 +260,30 @@ bool EndGame()
     return false;
 }
 
+void ReadBoard(int floes[cols][rows], char* fname)
+{
+    int i, j;
+	FILE * fPointer = NULL;
+	fPointer = fopen(fname, "r");
+	if(fPointer == NULL)
+    {
+        printf("No board file detected!!!\n");
+        getch();
+        exit(0);
+    }
+	fscanf(fPointer, "%d %d\n", &playersNumber, &penguinsNumber);
+	fscanf(fPointer, "%d %d\n", &cols, &rows);
+
+	for (i = 0;i < cols; i++)
+	{
+		for (j = 0; j < rows; j++)
+        {
+            fscanf(fPointer, "%d ", &floes[j][i]);
+        }
+	}
+}
+
+
 int main(int argc, char* argv[])
 {
     if( ReadArgs(argc, argv) )
@@ -310,21 +322,17 @@ int main(int argc, char* argv[])
         rows = 10;
         cols = 10;
         int floes[cols][rows];
-
-        InitBoard(floes);
-
-        //playersNumber = ReadIntWithMessage("Type number of players: ");
-        //penguinsNumber = ReadIntWithMessage("Type number of penguins for every player: ");
-        //turns = ReadIntWithMessage("Type number of turns: ");
+        ReadBoard(floes, "board.txt");
         turns = 10;
         printf("\n");
 
         struct Penguin penguins[1];
 
-        penguins[0].x = 0;
-        penguins[0].y = 0;
+        penguins[0].x = ReadIntWithMessage("Type initial penguin x: ");
+        penguins[0].y = ReadIntWithMessage("Type initial penguin y: ");
+        UpdatePenguinPosition(floes, &penguins[0], 0, penguins[0].x, penguins[0].y);
+        PrintBoard(floes);
 
-        //printf("Your position is: %d, %d\n\n", penguins[0].x, penguins[0].y);
         while (!EndGame())
         {
             struct Coordinates new_coords = { penguins[0].x, penguins[0].y };
@@ -349,4 +357,3 @@ int main(int argc, char* argv[])
     getch();
     return 0;
 }
-
