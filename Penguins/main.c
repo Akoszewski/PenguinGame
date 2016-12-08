@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <conio.h>
+#include <time.h>
 
 enum Phase
 {
@@ -21,6 +22,7 @@ enum Direction
 };
 
 int playersNumber;
+int penguinNumber;
 int penguinsNumber; // number of penguins for each player
 char inputboardfile[64];
 char outputboardfile[64];
@@ -28,7 +30,10 @@ char outputboardfile[64];
 int cols; // number of columns
 int rows; // number of rows
 
-int turns;
+int currentturn;
+int totalturns;
+
+int Score[10];
 
 struct Coordinates
 {
@@ -53,6 +58,14 @@ struct Penguin
     bool lost;
     struct Penguin* penguins;
 };
+*/
+
+/*player[1].penguin[penguinNumber].x
+
+struct Penguin* penguins;
+players[i].penguins = (struct Penguins*)malloc(10*sizeof(struct Penguin));
+penguins[3];
+free(players[i].penguins);
 */
 
 bool ReadArgs(int argc, char* argv[])
@@ -142,6 +155,19 @@ enum Direction ReadDirectionWithMessage(char* message)
     } while (failed);
 }
 
+void InitBoard(int floes[cols][rows])
+{
+    srand(time(NULL));
+    int r,c;
+    for( r = 0; r < rows; r++)
+    {
+        for(c = 0; c < cols; c++)
+        {
+            floes[c][r] = rand()%3 + 1;
+        }
+    }
+}
+
 void PrintBoard(int floes[cols][rows])
 {
     //system("cls");
@@ -156,7 +182,6 @@ void PrintBoard(int floes[cols][rows])
             printf("%d",floes[c][r]);
             printf(" ");
         }
-       // printf("\n");
         printf("\n");
     }
     printf("\n");
@@ -246,8 +271,9 @@ bool TryMovePenguin(int floes[cols][rows], struct Penguin penguin, enum Directio
     return true;
 }
 
-void ReadMovement(enum Direction* direction, int* jumps)
+void ReadMovement(int* penguinNumber, enum Direction* direction, int* jumps)
 {
+    *penguinNumber = ReadIntWithMessage("Type number of penguin: ") - 1; // penguin 1 is penguin[0]
     *direction = ReadDirectionWithMessage("Type direction of movement: ");
     *jumps = ReadIntWithMessage("Type number of jumps: ");
 }
@@ -256,21 +282,17 @@ bool EndGame()
 {
     static int counter = 0;
     counter++;
-    if(counter > turns) return true;
+    if(counter > totalturns) return true;
     return false;
 }
 
 void ReadBoard(int floes[cols][rows], char* fname)
 {
-    int i, j;
-	FILE * fPointer = NULL;
+    int i, j, k;
+	FILE * fPointer;
 	fPointer = fopen(fname, "r");
-	if(fPointer == NULL)
-    {
-        printf("No board file detected!!!\n");
-        getch();
-        exit(0);
-    }
+
+
 	fscanf(fPointer, "%d %d\n", &playersNumber, &penguinsNumber);
 	fscanf(fPointer, "%d %d\n", &cols, &rows);
 
@@ -281,7 +303,30 @@ void ReadBoard(int floes[cols][rows], char* fname)
             fscanf(fPointer, "%d ", &floes[j][i]);
         }
 	}
+
+	fscanf(fPointer, "%d/%d", &currentturn, &totalturns);
+
+	for(k=0; k < playersNumber; k++)
+    {
+        fscanf(fPointer, "%d ", &Score[k]);
+    }
+
 }
+
+void PrintScoreTable(int* Score)
+{
+    int i;
+
+    printf("\nSCORES\n\n");
+
+    for (i = 0; i < playersNumber; i++)
+    {
+        printf("Player %d: %d\n", i+1, Score[i]);
+    }
+    printf("\n");
+}
+
+
 
 
 int main(int argc, char* argv[])
@@ -323,37 +368,64 @@ int main(int argc, char* argv[])
         cols = 10;
         int floes[cols][rows];
         ReadBoard(floes, "board.txt");
-        turns = 10;
+        //InitBoard(floes);
+
+        //playersNumber = ReadIntWithMessage("Type number of players: ");
+        //penguinsNumber = ReadIntWithMessage("Type number of penguins for every player: ");
+        //turns = ReadIntWithMessage("Type number of turns: ");
+        totalturns = 10;
         printf("\n");
 
-        struct Penguin penguins[1];
+        struct Penguin penguins[3];
+        int i;
+        for(i=0; i < playersNumber; i++) // placement
+        {
+            printf("Player %d: \n", i+1);
+            penguinNumber = ReadIntWithMessage("Type number of penguin: ");
+            penguins[penguinNumber].x = ReadIntWithMessage("Type initial penguin x: ");
+            penguins[penguinNumber].y = ReadIntWithMessage("Type initial penguin y: ");
+            printf("\n");
+            while(penguins[penguinNumber].x >= cols || penguins[penguinNumber].y >= rows || penguins[penguinNumber].x < 0 || penguins[penguinNumber].y < 0 || floes[penguins[penguinNumber].x][penguins[penguinNumber].y] != 1)
+            {
+                printf("You can't place penguin here!!! Try again. \n");
+                penguins[penguinNumber].x = ReadIntWithMessage("Type initial penguin x: ");
+                penguins[penguinNumber].y = ReadIntWithMessage("Type initial penguin y: ");
+            }
+            UpdatePenguinPosition(floes, &penguins[penguinNumber], penguinNumber, penguins[penguinNumber].x, penguins[penguinNumber].y);
+            PrintBoard(floes);
+        }
 
-        penguins[0].x = ReadIntWithMessage("Type initial penguin x: ");
-        penguins[0].y = ReadIntWithMessage("Type initial penguin y: ");
-        UpdatePenguinPosition(floes, &penguins[0], 0, penguins[0].x, penguins[0].y);
-        PrintBoard(floes);
+        //PrintScoreTable(Score);
 
+        //printf("Your position is: %d, %d\n\n", penguins[0].x, penguins[0].y);
         while (!EndGame())
         {
             struct Coordinates new_coords = { penguins[0].x, penguins[0].y };
             enum Direction direction;
             int jumps;
 
-            ReadMovement(&direction, &jumps);
-            if(TryMovePenguin(floes, penguins[0], direction, jumps, &new_coords))
+            int i;
+            for(i = 0; i < playersNumber; i++)  // movement
             {
-                UpdatePenguinPosition(floes, &penguins[0], 0, new_coords.x, new_coords.y); // tab with floes, penguin by reference, index of penguin, new coordinates
+                printf("Player %d: \n", i+1);
+                ReadMovement(&penguinNumber, &direction, &jumps);
+                if(TryMovePenguin(floes, penguins[penguinNumber], direction, jumps, &new_coords))
+                {
+                    Score[i] += floes[new_coords.x][new_coords.y];
+
+                    UpdatePenguinPosition(floes, &penguins[penguinNumber], penguinNumber, new_coords.x, new_coords.y); // tab with floes, penguin by reference, index of penguin, new coordinates
+                }
+                else
+                {
+                    printf("Invalid movment\n");
+                }
+                PrintScoreTable(Score);
+                PrintBoard(floes);
             }
-            else
-            {
-                printf("Invalid movment\n");
-            }
-            PrintBoard(floes);
-            //printf("Your position is: %d, %d\n\n", penguins[0].x, penguins[0].y);
-            //PrintBoard(floes);
         }
     }
     printf("End of the game. Type any key to exit\n");
     getch();
     return 0;
 }
+
