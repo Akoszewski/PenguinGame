@@ -23,6 +23,7 @@ enum Direction
 
 int playersNumber;
 int penguinNumber;
+int penguinNumberOnField;
 int penguinsNumber; // number of penguins for each player
 char inputboardfile[64];
 char outputboardfile[64];
@@ -53,13 +54,13 @@ struct Penguin
     int new_y;
 };
 */
-/*struct Player
+struct Player
 {
     bool lost;
     struct Penguin* penguins;
 };
-*/
 
+struct Player players[2];
 /*player[1].penguin[penguinNumber].x
 
 struct Penguin* penguins;
@@ -153,19 +154,6 @@ enum Direction ReadDirectionWithMessage(char* message)
             failed = true;
         }
     } while (failed);
-}
-
-void InitBoard(int floes[cols][rows])
-{
-    srand(time(NULL));
-    int r,c;
-    for( r = 0; r < rows; r++)
-    {
-        for(c = 0; c < cols; c++)
-        {
-            floes[c][r] = rand()%3 + 1;
-        }
-    }
 }
 
 void PrintBoard(int floes[cols][rows])
@@ -286,12 +274,44 @@ bool EndGame()
     return false;
 }
 
+void InitBoard(int floes[cols][rows])
+{
+    playersNumber = ReadIntWithMessage("Type number of players: ");
+    penguinsNumber = ReadIntWithMessage("Type number of penguins for each player: ");
+    cols = ReadIntWithMessage("Type number of columns (<10): ");
+    rows = ReadIntWithMessage("Type number of rows (<10): ");
+
+    currentturn = 0;
+    totalturns = 10;
+    int i;
+    for(i=0; i < playersNumber; ++i)
+    {
+        Score[i] = 0;
+    }
+
+    srand(time(NULL));
+    int r,c;
+    for( r = 0; r < rows; r++)
+    {
+        for(c = 0; c < cols; c++)
+        {
+            floes[c][r] = rand()%3 + 1;
+        }
+    }
+}
+
+
 void ReadBoard(int floes[cols][rows], char* fname)
 {
     int i, j, k;
-	FILE * fPointer;
+	FILE * fPointer = NULL;
 	fPointer = fopen(fname, "r");
-
+    if(fPointer == NULL)
+    {
+        printf("No input file found! \n");
+        getch();
+        exit(0);
+    }
 
 	fscanf(fPointer, "%d %d\n", &playersNumber, &penguinsNumber);
 	fscanf(fPointer, "%d %d\n", &cols, &rows);
@@ -310,7 +330,7 @@ void ReadBoard(int floes[cols][rows], char* fname)
     {
         fscanf(fPointer, "%d ", &Score[k]);
     }
-
+    fclose(fPointer);
 }
 
 void PrintScoreTable(int* Score)
@@ -331,6 +351,7 @@ void PrintScoreTable(int* Score)
 
 int main(int argc, char* argv[])
 {
+    int i;
     if( ReadArgs(argc, argv) )
     {
         //Batch mode
@@ -368,30 +389,31 @@ int main(int argc, char* argv[])
         cols = 10;
         int floes[cols][rows];
         ReadBoard(floes, "board.txt");
-        //InitBoard(floes);
+        //InitBoard(floes); // Doesnt work :(
 
         //playersNumber = ReadIntWithMessage("Type number of players: ");
         //penguinsNumber = ReadIntWithMessage("Type number of penguins for every player: ");
         //turns = ReadIntWithMessage("Type number of turns: ");
-        totalturns = 10;
-        printf("\n");
-
-        struct Penguin penguins[3];
         int i;
+        for(i = 0; i < playersNumber; i++)
+        {
+            players[i].penguins = (struct Penguin*)malloc(penguinsNumber*sizeof(struct Penguin));
+        }
         for(i=0; i < playersNumber; i++) // placement
         {
             printf("Player %d: \n", i+1);
-            penguinNumber = ReadIntWithMessage("Type number of penguin: ");
-            penguins[penguinNumber].x = ReadIntWithMessage("Type initial penguin x: ");
-            penguins[penguinNumber].y = ReadIntWithMessage("Type initial penguin y: ");
+            penguinNumber = ReadIntWithMessage("Type number of penguin: ") - 1;
+            players[i].penguins[penguinNumber].x = ReadIntWithMessage("Type initial penguin x: ");
+            players[i].penguins[penguinNumber].y = ReadIntWithMessage("Type initial penguin y: ");
             printf("\n");
-            while(penguins[penguinNumber].x >= cols || penguins[penguinNumber].y >= rows || penguins[penguinNumber].x < 0 || penguins[penguinNumber].y < 0 || floes[penguins[penguinNumber].x][penguins[penguinNumber].y] != 1)
+            while(players[i].penguins[penguinNumber].x >= cols || players[i].penguins[penguinNumber].y >= rows || players[i].penguins[penguinNumber].x < 0 || players[i].penguins[penguinNumber].y < 0 ||
+                  floes[players[i].penguins[penguinNumber].x][players[i].penguins[penguinNumber].y] != 1)
             {
                 printf("You can't place penguin here!!! Try again. \n");
-                penguins[penguinNumber].x = ReadIntWithMessage("Type initial penguin x: ");
-                penguins[penguinNumber].y = ReadIntWithMessage("Type initial penguin y: ");
+                players[i].penguins[penguinNumber].x = ReadIntWithMessage("Type initial penguin x: ");
+                players[i].penguins[penguinNumber].y = ReadIntWithMessage("Type initial penguin y: ");
             }
-            UpdatePenguinPosition(floes, &penguins[penguinNumber], penguinNumber, penguins[penguinNumber].x, penguins[penguinNumber].y);
+            UpdatePenguinPosition(floes, &players[i].penguins[penguinNumber], penguinsNumber*i+penguinNumber, players[i].penguins[penguinNumber].x, players[i].penguins[penguinNumber].y);
             PrintBoard(floes);
         }
 
@@ -400,20 +422,19 @@ int main(int argc, char* argv[])
         //printf("Your position is: %d, %d\n\n", penguins[0].x, penguins[0].y);
         while (!EndGame())
         {
-            struct Coordinates new_coords = { penguins[0].x, penguins[0].y };
+            struct Coordinates new_coords;
             enum Direction direction;
             int jumps;
 
-            int i;
             for(i = 0; i < playersNumber; i++)  // movement
             {
                 printf("Player %d: \n", i+1);
                 ReadMovement(&penguinNumber, &direction, &jumps);
-                if(TryMovePenguin(floes, penguins[penguinNumber], direction, jumps, &new_coords))
+                if(TryMovePenguin(floes, players[i].penguins[penguinNumber], direction, jumps, &new_coords))
                 {
                     Score[i] += floes[new_coords.x][new_coords.y];
 
-                    UpdatePenguinPosition(floes, &penguins[penguinNumber], penguinNumber, new_coords.x, new_coords.y); // tab with floes, penguin by reference, index of penguin, new coordinates
+                    UpdatePenguinPosition(floes, &players[i].penguins[penguinNumber], penguinNumber, new_coords.x, new_coords.y); // tab with floes, penguin by reference, index of penguin, new coordinates
                 }
                 else
                 {
@@ -426,6 +447,10 @@ int main(int argc, char* argv[])
     }
     printf("End of the game. Type any key to exit\n");
     getch();
+    for(i=0; i < penguinsNumber; i++)
+    {
+        free(players[i].penguins);
+    }
     return 0;
 }
 
