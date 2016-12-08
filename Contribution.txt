@@ -8,3 +8,4 @@ Aghiad:
 
 Mateusz:
 - Reading board from file
+- Collecting points
