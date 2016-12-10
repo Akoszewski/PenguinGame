@@ -457,15 +457,20 @@ int main(int argc, char* argv[])
                 }
                 else
                 {
-                    ReadMovement(&penguinNumber, &direction, &jumps);
-                    if(TryMovePenguin(floes, players[i].penguins[penguinNumber], direction, jumps, &new_coords))
+                    bool success = false;
+                    while(!success)
                     {
-                        players[i].score += floes[new_coords.x][new_coords.y];
-                        UpdatePenguinPosition(floes, &players[i].penguins[penguinNumber], penguinsNumber*i + penguinNumber, new_coords.x, new_coords.y); // tab with floes, penguin by reference, index of penguin, new coordinates
-                    }
-                    else
-                    {
-                        printf("Invalid movment\n");
+                        ReadMovement(&penguinNumber, &direction, &jumps);
+                        if(TryMovePenguin(floes, players[i].penguins[penguinNumber], direction, jumps, &new_coords))
+                        {
+                            players[i].score += floes[new_coords.x][new_coords.y];
+                            UpdatePenguinPosition(floes, &players[i].penguins[penguinNumber], penguinsNumber*i + penguinNumber, new_coords.x, new_coords.y); // tab with floes, penguin by reference, index of penguin, new coordinates
+                            success = true;
+                        }
+                        else
+                        {
+                            printf("Invalid movment! Try again.\n");
+                        }
                     }
                     PrintScoreTable();
                     PrintBoard(floes);
