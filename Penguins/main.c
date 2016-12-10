@@ -303,27 +303,35 @@ bool EndGame()
     return false;
 }
 
-void InitBoard(int floes[cols][rows])
+struct Player* CreatePlayers(int playersNumber, int penguinsNumber)  // create players and give them penguins
 {
-    playersNumber = ReadIntWithMessage("Type number of players: ");
-    penguinsNumber = ReadIntWithMessage("Type number of penguins for each player: ");
-    cols = ReadIntWithMessage("Type number of columns (<10): ");
-    rows = ReadIntWithMessage("Type number of rows (<10): ");
-
-    currentturn = 1;
-    totalturns = 10;
-
-    srand(time(NULL));
-    int r,c;
-    for( r = 0; r < rows; r++)
+    int i, j;
+    struct Player* players = (struct Player*)malloc(playersNumber*sizeof(struct Player));
+    for(i = 0; i < playersNumber; i++)
     {
-        for(c = 0; c < cols; c++)
+        players[i].penguins = (struct Penguin*)malloc(penguinsNumber*sizeof(struct Penguin));
+        players[i].lost = false;
+        players[i].score = 0;
+        for(j = 0; j < penguinsNumber; j++)
         {
-            floes[c][r] = rand()%3 + 1;
+            players[i].penguins[j].x = -1;
+            players[i].penguins[j].y = -1;
+            players[i].penguins[j].placed = false;
+            players[i].penguins[j].blocked = false;
         }
     }
+    return players;
 }
 
+void RemovePlayers(struct Player* players, int playersNum) // ree memory
+{
+    int i;
+    for(i=0; i < playersNum; i++)
+    {
+        free(players[i].penguins);
+    }
+    free(players);
+}
 
 void ReadBoard(int floes[cols][rows], char* fname)
 {
@@ -340,19 +348,9 @@ void ReadBoard(int floes[cols][rows], char* fname)
 	fscanf(fPointer, "%d %d\n", &playersNumber, &penguinsNumber);
 	fscanf(fPointer, "%d %d\n", &cols, &rows);
 
-	players = (struct Player*)malloc(playersNumber*sizeof(struct Player)); // create players and give them penguins
-    for(i = 0; i < playersNumber; i++)
-    {
-        players[i].penguins = (struct Penguin*)malloc(penguinsNumber*sizeof(struct Penguin));
-        players[i].lost = false;
-        for(j = 0; j < penguinsNumber; j++)
-        {
-            players[i].penguins[j].placed = false;
-            players[i].penguins[j].blocked = false;
-        }
-    }
+    players = CreatePlayers(playersNumber, penguinsNumber);
 
-	for (i = 0;i < cols; i++)
+	for (i = 0; i < cols; i++)
 	{
 		for (j = 0; j < rows; j++)
         {
@@ -454,16 +452,16 @@ int main(int argc, char* argv[])
                         printf("This penguin is already placed! Try again.\n");
                         ReadPlacement(floes, &penguinNumber, &new_coords);
                     }
-                    SetPenguinPosition(floes, &players[i].penguins[penguinNumber], penguinsNumber*i+penguinNumber, new_coords.x, new_coords.y);
+                    SetPenguinPosition(floes, &players[i].penguins[penguinNumber], penguinsNumber*i + penguinNumber, new_coords.x, new_coords.y);
                     PrintBoard(floes);
                 }
                 else
                 {
                     ReadMovement(&penguinNumber, &direction, &jumps);
-                    if(TryMovePenguin(floes, players[i].penguins[penguinNumber], direction, jumps, &new_coords)) // crashes :/
+                    if(TryMovePenguin(floes, players[i].penguins[penguinNumber], direction, jumps, &new_coords))
                     {
                         players[i].score += floes[new_coords.x][new_coords.y];
-                        UpdatePenguinPosition(floes, &players[i].penguins[penguinNumber], penguinsNumber*i+penguinNumber, new_coords.x, new_coords.y); // tab with floes, penguin by reference, index of penguin, new coordinates
+                        UpdatePenguinPosition(floes, &players[i].penguins[penguinNumber], penguinsNumber*i + penguinNumber, new_coords.x, new_coords.y); // tab with floes, penguin by reference, index of penguin, new coordinates
                     }
                     else
                     {
@@ -481,11 +479,7 @@ int main(int argc, char* argv[])
         }
     }
     printf("End of the game. Type any key to exit\n");
+    RemovePlayers(players, playersNumber);
     getch();
-    for(i=0; i < penguinsNumber; i++)
-    {
-        free(players[i].penguins);
-    }
-    free(players);
     return 0;
 }
