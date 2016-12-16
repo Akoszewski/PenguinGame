@@ -297,6 +297,18 @@ void ReadMovement(int* penguinNumber, enum Direction* direction, int* jumps)
     *jumps = ReadIntWithMessage("Type number of jumps: ");
 }
 
+void ChooseBestPlacement(int floes[cols][rows], int* penguinNumber, struct Coordinates* coords)
+{
+    do
+    {
+        coords->x = rand() % cols;
+        coords->y = rand() % rows;
+    }
+    while (floes[coords->x][coords->y] != 1);
+
+    penguinNumber++;
+}
+
 bool EndGame()
 {
     if(currentturn > totalturns) return true;
@@ -355,6 +367,16 @@ void ReadBoard(int floes[cols][rows], char* fname)
 		for (j = 0; j < rows; j++)
         {
             fscanf(fPointer, "%d ", &floes[j][i]);
+        }
+	}
+
+	//remove later
+	srand(time(NULL));
+	for (i = 0; i < cols; i++)
+	{
+		for (j = 0; j < rows; j++)
+        {
+            floes[j][i] = rand()%3+1;
         }
 	}
 
@@ -446,7 +468,10 @@ int main(int argc, char* argv[])
                 printf("Player %d: \n", i+1);
                 if(phase == placement)
                 {
-                    ReadPlacement(floes, &penguinNumber, &new_coords);
+                    //ReadPlacement(floes, &penguinNumber, &new_coords);
+                    ChooseBestPlacement(floes, &penguinNumber, &new_coords);
+                    getch();
+
                     while(players[i].penguins[penguinNumber].placed)
                     {
                         printf("This penguin is already placed! Try again.\n");
