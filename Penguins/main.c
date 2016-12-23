@@ -191,6 +191,26 @@ bool IsFieldValid(int board[cols][rows], struct Coordinates coords) // checks if
     }
 }
 
+struct Movement GetMaxFishes(int board[cols][rows], struct Movement* movements, int numOfMovements)
+{
+    int i;
+    struct Movement bestMov = movements[0];
+    for(i = 0; i < numOfMovements; i++)
+    {
+        if(board[movements[i].coords.x][movements[i].coords.y] == 3)
+        {
+            bestMov = movements[i];
+            break;
+        }
+        else
+        {
+            if(board[movements[i].coords.x][movements[i].coords.y] > board[bestMov.coords.x][bestMov.coords.y])
+                bestMov = movements[i];
+        }
+    }
+    return bestMov;
+}
+
 int TakeNextPenguinIndex(struct Penguin* penguins)
 {
     int penguinIndex = 0;
@@ -583,15 +603,16 @@ int main(int argc, char* argv[])
                         players[playerIndex].lost = true;
                     }
 
-                    // remove later
+                    // remove later (it's for testing algotrithms)
                     if(!players[playerIndex].lost)
                     {
                         struct Movement movement;
-                        if(playerIndex % 2) 
+                        if(playerIndex % 2)  // player 2
                         {
-                            movement = players[playerIndex].movements[0]; // first movement from array (moving in an order)
+                            movement = GetMaxFishes(board, players[playerIndex].movements, players[playerIndex].numOfMovements);
+                            //movement = players[playerIndex].movements[0]; // first movement from array (moving in an order)
                         }
-                        else 
+                        else // player 1
                         {
                             int movementInd;
                             movementInd = rand() % players[playerIndex].numOfMovements; // random (chaotic) movement
