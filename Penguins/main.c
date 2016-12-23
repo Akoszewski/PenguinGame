@@ -8,6 +8,8 @@
 #define true 1
 #define false 0
 
+#define SIZE 100
+
 enum Phase
 {
     placementPhase,
@@ -52,6 +54,7 @@ struct Player
     bool lost;
     int score;
     struct Penguin* penguins;
+    struct Movement* movements;
 };
 struct Player* players;
 
@@ -156,6 +159,37 @@ enum Direction ReadDirectionWithMessage(char* message)
     } while (failed);
 }
 
+bool IsFieldInScope(struct Coordinates coords)
+{
+    if(coords.x >= cols || coords.y >= rows || coords.x < 0 || coords.y < 0)
+    {
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}
+
+bool IsFieldValid(int board[cols][rows], struct Coordinates coords) // checks if a field is valid to move on
+{
+    if(IsFieldInScope(coords))
+    {
+        if(board[coords.x][coords.y] == 0 || board[coords.x][coords.y] > 3)
+        {
+            return false;
+        }
+        else
+        {
+            return true;
+        }
+    }
+    else
+    {
+        return false;
+    }
+}
+
 int TakeNextPenguinIndex(struct Penguin* penguins)
 {
     int penguinIndex = 0;
@@ -189,7 +223,7 @@ void PrintBoard(int board[cols][rows])
     printf("\n");
 }
 
-struct Coordinates GetNeighbouringCoord(struct Coordinates curr, enum Direction direction)
+struct Coordinates GetNeighbouringCoords(struct Coordinates curr, enum Direction direction)
 {
     struct Coordinates new_coords;
      new_coords = curr;
@@ -265,13 +299,13 @@ void UpdatePenguinPosition(int board[cols][rows], struct Penguin* penguin, int i
     penguin->coords = coords;
 }
 
-bool TryMovePenguin(int board[cols][rows], struct Penguin penguin, struct MovementInSteps movement, struct Coordinates* new_coords)
+bool TryMovement(int board[cols][rows], struct Coordinates startingPoint, struct MovementInSteps movement, struct Coordinates* new_coords)
 {
-    *new_coords = penguin.coords;
+    *new_coords = startingPoint;
     while(movement.jumps > 0)
     {
-        *new_coords = GetNeighbouringCoord(*new_coords, movement.direction);
-        if(board[new_coords->x][new_coords->y] == 0 || board[new_coords->x][new_coords->y] > 3 || new_coords->x >= cols || new_coords->y >= rows || new_coords->x < 0 || new_coords->y < 0)
+        *new_coords = GetNeighbouringCoords(*new_coords, movement.direction);
+        if(!IsFieldValid(board, *new_coords))
         {
             return false;
         }
@@ -289,17 +323,20 @@ struct Movement ReadPlacement(int board[cols][rows], struct Penguin* penguins)
     {
         placement.coords.x = ReadIntWithMessage("Type initial penguin x: ") - 1; // board[0][0] is 1,1 in game
         placement.coords.y = ReadIntWithMessage("Type initial penguin y: ") - 1;
-        if(placement.coords.x >= cols || placement.coords.y >= rows || placement.coords.x < 0 || placement.coords.y < 0)
+        if(IsFieldInScope(placement.coords))
         {
-            puts("Such field doesn't exist! Try again!");
-        }
-        else if(board[placement.coords.x][placement.coords.y] != 1)
-        {
-            puts("You can't place penguin here!!! You can place your penguin only on field with one fish. Try again!");
+            if(board[placement.coords.x][placement.coords.y] != 1)
+            {
+                puts("You can't place penguin here!!! You can place your penguin only on field with one fish. Try again!");
+            }
+            else
+            {
+                success = true;
+            }
         }
         else
         {
-            success = true;
+            puts("Such field doesn't exist! Try again!");
         }
     }
     return placement;
@@ -316,6 +353,41 @@ struct Movement ChooseBestPlacement(int board[cols][rows], struct Penguin* pengu
     }
     while (board[placement.coords.x][placement.coords.y] != 1);
     return placement;
+}
+
+struct Movement* FindAllMovements(int board[cols][rows], struct Player player)
+{
+    struct Movement* movements = (struct Movement*)malloc(SIZE * sizeof(struct Movement));
+    int penguinIndex = 0;
+    enum Direction direction = 0;
+    int numOfMovements = 0; 
+    for(penguinIndex = 0; penguinIndex < numOfPenguins; penguinIndex++)
+    {
+        for(direction = 0; direction < 6; direction++) //  6 directions
+        {
+            struct Coordinates new_coords = player.penguins[penguinIndex].coords;
+            while(true)
+            {
+                new_coords = GetNeighbouringCoords(new_coords, direction);
+                if(IsFieldValid(board, new_coords))
+                {
+                    movements[numOfMovements].penguinIndex = penguinIndex;
+                    movements[numOfMovements].coords = new_coords;
+                    numOfMovements++;
+
+                    if((numOfMovements % SIZE) == 0) // allocate new memory if needed
+                    {
+                        movements = (struct Movement*) realloc(movements, (numOfMovements + SIZE) * sizeof(struct Movement));
+                    }
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+    }
+    return movements;
 }
 
 struct MovementInSteps ReadMovement(int playerIndex)
@@ -492,8 +564,8 @@ int main(int argc, char* argv[])
                 printf("Player %d: \n", playerIndex + 1);
                 if(phase == placementPhase)
                 {
-                    //struct Movement placement = ReadPlacement(board, players[playerIndex].penguins);
-                    struct Movement placement = ChooseBestPlacement(board, players[playerIndex].penguins);
+                    struct Movement placement = ReadPlacement(board, players[playerIndex].penguins);
+                    //struct Movement placement = ChooseBestPlacement(board, players[playerIndex].penguins);
                     players[playerIndex].score += board[placement.coords.x][placement.coords.y];
                     SetPenguinPosition(board, &players[playerIndex].penguins[placement.penguinIndex], numOfPenguins*playerIndex + placement.penguinIndex, placement.coords);
                     PrintBoard(board);
@@ -505,7 +577,9 @@ int main(int argc, char* argv[])
                     {
                         struct Coordinates new_coords;
                         struct MovementInSteps movement = ReadMovement(playerIndex);
-                        if(TryMovePenguin(board, players[playerIndex].penguins[movement.penguinIndex], movement, &new_coords))
+                        //players[playerIndex].movements = FindAllMovements(board, players[playerIndex]);
+
+                        if(TryMovement(board, players[playerIndex].penguins[movement.penguinIndex].coords, movement, &new_coords)) 
                         {
                             players[playerIndex].score += board[new_coords.x][new_coords.y];
                             UpdatePenguinPosition(board, &players[playerIndex].penguins[movement.penguinIndex], numOfPenguins*playerIndex + movement.penguinIndex, new_coords); // tab with board, penguin by reference, index of penguin, new coordinates
