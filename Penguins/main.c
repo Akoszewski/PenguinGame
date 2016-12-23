@@ -25,7 +25,6 @@ enum Direction
 };
 
 int numOfPlayers;
-//int penguinIndex;
 int numOfPenguins; // number of penguins for each player
 char inputboardfile[64];
 char outputboardfile[64];
@@ -157,6 +156,21 @@ enum Direction ReadDirectionWithMessage(char* message)
     } while (failed);
 }
 
+int TakeNextPenguinIndex(struct Penguin* penguins)
+{
+    int penguinIndex = 0;
+    while(penguins[penguinIndex].placed)
+    {
+        penguinIndex++;
+        if(penguinIndex > numOfPenguins)
+        {
+            perror("Error of TakeNextPenguinIndex function, too big penguinIndex!");
+            exit(0);
+        }
+    }
+    return penguinIndex;
+}
+
 void PrintBoard(int board[cols][rows])
 {
     int c,r;
@@ -269,23 +283,24 @@ bool TryMovePenguin(int board[cols][rows], struct Penguin penguin, struct Moveme
 struct Movement ReadPlacement(int board[cols][rows], struct Penguin* penguins)
 {
     struct Movement placement;
-    placement.penguinIndex = ReadIntWithMessage("Type number of penguin: ") - 1; // penguin 1 is penguin[0]
-    while(placement.penguinIndex >= numOfPenguins || placement.penguinIndex < 0 || penguins[placement.penguinIndex].placed) 
+    placement.penguinIndex = TakeNextPenguinIndex(penguins);
+    bool success = false;
+    while(!success)
     {
-        placement.penguinIndex = ReadIntWithMessage("You don't have such penguin! (or is already placed) Try again: ") - 1;
-    }
-    placement.coords.x = ReadIntWithMessage("Type initial penguin x: ");
-    placement.coords.y = ReadIntWithMessage("Type initial penguin y: ");
-    while(placement.coords.x >= cols || placement.coords.y >= rows || placement.coords.x < 0 || placement.coords.y < 0 || board[placement.coords.x][placement.coords.y] != 1)
-    {
-        printf("You can't place penguin here!!! Try again. \n");
-        placement.penguinIndex = ReadIntWithMessage("Type number of penguin: ") - 1;
-        while(placement.penguinIndex >= numOfPenguins || placement.penguinIndex < 0)
+        placement.coords.x = ReadIntWithMessage("Type initial penguin x: ") - 1; // board[0][0] is 1,1 in game
+        placement.coords.y = ReadIntWithMessage("Type initial penguin y: ") - 1;
+        if(placement.coords.x >= cols || placement.coords.y >= rows || placement.coords.x < 0 || placement.coords.y < 0)
         {
-            placement.penguinIndex = ReadIntWithMessage("You don't have such penguin! Try again: ") - 1;
+            puts("Such field doesn't exist! Try again!");
         }
-        placement.coords.x = ReadIntWithMessage("Type initial penguin x: ");
-        placement.coords.y = ReadIntWithMessage("Type initial penguin y: ");
+        else if(board[placement.coords.x][placement.coords.y] != 1)
+        {
+            puts("You can't place penguin here!!! You can place your penguin only on field with one fish. Try again!");
+        }
+        else
+        {
+            success = true;
+        }
     }
     return placement;
 }
@@ -293,11 +308,7 @@ struct Movement ReadPlacement(int board[cols][rows], struct Penguin* penguins)
 struct Movement ChooseBestPlacement(int board[cols][rows], struct Penguin* penguins)
 {
     struct Movement placement;
-    placement.penguinIndex = 0;
-    while(penguins[placement.penguinIndex].placed)
-    {
-        placement.penguinIndex++;
-    }
+    placement.penguinIndex = TakeNextPenguinIndex(penguins);
     do
     {
         placement.coords.x = rand() % cols;
@@ -307,13 +318,19 @@ struct Movement ChooseBestPlacement(int board[cols][rows], struct Penguin* pengu
     return placement;
 }
 
-struct MovementInSteps ReadMovement()
+struct MovementInSteps ReadMovement(int playerIndex)
 {
     struct MovementInSteps movement;
-    movement.penguinIndex = ReadIntWithMessage("Type number of penguin: ") - 1; // penguin 1 is penguin[0]
-    while(movement.penguinIndex >= numOfPenguins)
+    int minPeng, maxPeng;
+
+    minPeng = 4 + playerIndex * numOfPenguins;
+    maxPeng = minPeng + numOfPenguins - 1;
+
+    printf("Type number of penguin (%d - %d): ", minPeng, maxPeng);
+    movement.penguinIndex = ReadIntWithMessage("") - playerIndex * numOfPenguins - 4; // penguin 7 is player[1].penguin[0]
+    while(movement.penguinIndex >= numOfPenguins || movement.penguinIndex < 0)
     {
-        movement.penguinIndex = ReadIntWithMessage("You don't have such penguin! Try again: ") - 1;
+        movement.penguinIndex = ReadIntWithMessage("You don't have such penguin! Try again!: ") - playerIndex*numOfPenguins - 4;
     }
     movement.direction = ReadDirectionWithMessage("Type direction of movement: ");
     movement.jumps = ReadIntWithMessage("Type number of jumps: ");
@@ -326,7 +343,7 @@ bool EndGame()
     return false;
 }
 
-struct Player* CreatePlayers(int numOfPlayers, int numOfPenguins)  // create players and give them penguins
+struct Player* CreatePlayers(int numOfPlayers, int numOfPenguins)  // creates players and gives them penguins
 {
     int i, j;
     struct Player* players = (struct Player*)malloc(numOfPlayers*sizeof(struct Player));
@@ -426,7 +443,6 @@ void PrintGameState()
 
 int main(int argc, char* argv[])
 {
-    int i, j;
     if( ReadArgs(argc, argv) )
     {
         //Batch mode
@@ -470,14 +486,16 @@ int main(int argc, char* argv[])
 
         while (!EndGame())
         {
-            for(i = 0; i < numOfPlayers; i++)
+            int playerIndex;
+            for(playerIndex = 0; playerIndex < numOfPlayers; playerIndex++)
             {
-                printf("Player %d: \n", i+1);
+                printf("Player %d: \n", playerIndex + 1);
                 if(phase == placementPhase)
                 {
-                    struct Movement placement = ReadPlacement(board, players[i].penguins);
-                    //struct Movement placement = ChooseBestPlacement(board);
-                    SetPenguinPosition(board, &players[i].penguins[placement.penguinIndex], numOfPenguins*i + placement.penguinIndex, placement.coords);
+                    //struct Movement placement = ReadPlacement(board, players[playerIndex].penguins);
+                    struct Movement placement = ChooseBestPlacement(board, players[playerIndex].penguins);
+                    players[playerIndex].score += board[placement.coords.x][placement.coords.y];
+                    SetPenguinPosition(board, &players[playerIndex].penguins[placement.penguinIndex], numOfPenguins*playerIndex + placement.penguinIndex, placement.coords);
                     PrintBoard(board);
                 }
                 else
@@ -485,26 +503,25 @@ int main(int argc, char* argv[])
                     bool success = false;
                     while(!success)
                     {
-                        struct MovementInSteps movement = ReadMovement();
                         struct Coordinates new_coords;
-                        if(TryMovePenguin(board, players[i].penguins[movement.penguinIndex], movement, &new_coords))
+                        struct MovementInSteps movement = ReadMovement(playerIndex);
+                        if(TryMovePenguin(board, players[playerIndex].penguins[movement.penguinIndex], movement, &new_coords))
                         {
-                            players[i].score += board[new_coords.x][new_coords.y];
-                            UpdatePenguinPosition(board, &players[i].penguins[movement.penguinIndex], numOfPenguins*i + movement.penguinIndex, new_coords); // tab with board, penguin by reference, index of penguin, new coordinates
+                            players[playerIndex].score += board[new_coords.x][new_coords.y];
+                            UpdatePenguinPosition(board, &players[playerIndex].penguins[movement.penguinIndex], numOfPenguins*playerIndex + movement.penguinIndex, new_coords); // tab with board, penguin by reference, index of penguin, new coordinates
                             success = true;
                         }
                         else
                         {
-                            printf("Invalid movment! Try again.\n");
+                            puts("Invalid movment! Try again.");
                         }
                     }
                     PrintScoreTable();
                     PrintBoard(board);
                 }
             }
-            printf("Current: %d\n", numOfPenguins);
             currentturn++;
-            if(currentturn > numOfPenguins)
+            if(currentturn > numOfPenguins) // if all penguins are placed switch to the movement phase
             {
                 phase = movementPhase;
             }
