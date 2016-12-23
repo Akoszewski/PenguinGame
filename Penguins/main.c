@@ -55,6 +55,7 @@ struct Player
     int score;
     struct Penguin* penguins;
     struct Movement* movements;
+    int numOfMovements;
 };
 struct Player* players;
 
@@ -355,29 +356,29 @@ struct Movement ChooseBestPlacement(int board[cols][rows], struct Penguin* pengu
     return placement;
 }
 
-struct Movement* FindAllMovements(int board[cols][rows], struct Player player)
+void FindAllMovements(int board[cols][rows], struct Player* player) // fills the player's array of possible movements
 {
-    struct Movement* movements = (struct Movement*)malloc(SIZE * sizeof(struct Movement));
+    player->movements = (struct Movement*) malloc(SIZE * sizeof(struct Movement));
+    player->numOfMovements = 0;
     int penguinIndex = 0;
     enum Direction direction = 0;
-    int numOfMovements = 0; 
     for(penguinIndex = 0; penguinIndex < numOfPenguins; penguinIndex++)
     {
         for(direction = 0; direction < 6; direction++) //  6 directions
         {
-            struct Coordinates new_coords = player.penguins[penguinIndex].coords;
+            struct Coordinates new_coords = player->penguins[penguinIndex].coords;
             while(true)
             {
                 new_coords = GetNeighbouringCoords(new_coords, direction);
-                if(IsFieldValid(board, new_coords))
+                if(IsFieldValid(board, new_coords)) // if movement is valid add it to the array
                 {
-                    movements[numOfMovements].penguinIndex = penguinIndex;
-                    movements[numOfMovements].coords = new_coords;
-                    numOfMovements++;
+                    player->movements[player->numOfMovements].penguinIndex = penguinIndex;
+                    player->movements[player->numOfMovements].coords = new_coords;
+                    player->numOfMovements++;
 
-                    if((numOfMovements % SIZE) == 0) // allocate new memory if needed
+                    if((player->numOfMovements % SIZE) == 0) // allocate new memory if needed
                     {
-                        movements = (struct Movement*) realloc(movements, (numOfMovements + SIZE) * sizeof(struct Movement));
+                        player->movements = (struct Movement*) realloc(player->movements, (player->numOfMovements + SIZE) * sizeof(struct Movement));
                     }
                 }
                 else
@@ -387,7 +388,6 @@ struct Movement* FindAllMovements(int board[cols][rows], struct Player player)
             }
         }
     }
-    return movements;
 }
 
 struct MovementInSteps ReadMovement(int playerIndex)
@@ -418,12 +418,14 @@ bool EndGame()
 struct Player* CreatePlayers(int numOfPlayers, int numOfPenguins)  // creates players and gives them penguins
 {
     int i, j;
-    struct Player* players = (struct Player*)malloc(numOfPlayers*sizeof(struct Player));
+    struct Player* players = (struct Player*) malloc(numOfPlayers*sizeof(struct Player));
     for(i = 0; i < numOfPlayers; i++)
     {
-        players[i].penguins = (struct Penguin*)malloc(numOfPenguins*sizeof(struct Penguin));
+        players[i].penguins = (struct Penguin*) malloc(numOfPenguins*sizeof(struct Penguin));
         players[i].lost = false;
         players[i].score = 0;
+        players[i].numOfMovements = 0;
+        players[i].movements = NULL;
         for(j = 0; j < numOfPenguins; j++)
         {
             players[i].penguins[j].coords.x = -1;
@@ -441,6 +443,7 @@ void RemovePlayers(struct Player* players, int numOfPlayers) // free memory
     for(i=0; i < numOfPlayers; i++)
     {
         free(players[i].penguins);
+        free(players[i].movements);
     }
     free(players);
 }
@@ -515,6 +518,7 @@ void PrintGameState()
 
 int main(int argc, char* argv[])
 {
+    int i;
     if( ReadArgs(argc, argv) )
     {
         //Batch mode
@@ -559,25 +563,53 @@ int main(int argc, char* argv[])
         while (!EndGame())
         {
             int playerIndex;
+            printf("Turn %d: \n", currentturn);
             for(playerIndex = 0; playerIndex < numOfPlayers; playerIndex++)
             {
                 printf("Player %d: \n", playerIndex + 1);
                 if(phase == placementPhase)
                 {
-                    struct Movement placement = ReadPlacement(board, players[playerIndex].penguins);
-                    //struct Movement placement = ChooseBestPlacement(board, players[playerIndex].penguins);
+                    //struct Movement placement = ReadPlacement(board, players[playerIndex].penguins);
+                    struct Movement placement = ChooseBestPlacement(board, players[playerIndex].penguins);
                     players[playerIndex].score += board[placement.coords.x][placement.coords.y];
                     SetPenguinPosition(board, &players[playerIndex].penguins[placement.penguinIndex], numOfPenguins*playerIndex + placement.penguinIndex, placement.coords);
                     PrintBoard(board);
                 }
                 else
                 {
-                    bool success = false;
+                    FindAllMovements(board, &players[playerIndex]);
+                    if(players[playerIndex].numOfMovements == 0)
+                    {
+                        players[playerIndex].lost = true;
+                    }
+
+                    // remove later
+                    if(!players[playerIndex].lost)
+                    {
+                        struct Movement movement;
+                        if(playerIndex % 2) 
+                        {
+                            movement = players[playerIndex].movements[0]; // first movement from array (moving in an order)
+                        }
+                        else 
+                        {
+                            int movementInd;
+                            movementInd = rand() % players[playerIndex].numOfMovements; // random (chaotic) movement
+                            movement = players[playerIndex].movements[movementInd];
+                        }
+                        players[playerIndex].score += board[movement.coords.x][movement.coords.y];
+                        UpdatePenguinPosition(board, &players[playerIndex].penguins[movement.penguinIndex], numOfPenguins*playerIndex + movement.penguinIndex, movement.coords);
+                    }
+                    else
+                    {
+                        printf("Player lost!!!\n");
+                    }
+
+                    /*bool success = false;
                     while(!success)
                     {
                         struct Coordinates new_coords;
                         struct MovementInSteps movement = ReadMovement(playerIndex);
-                        //players[playerIndex].movements = FindAllMovements(board, players[playerIndex]);
 
                         if(TryMovement(board, players[playerIndex].penguins[movement.penguinIndex].coords, movement, &new_coords)) 
                         {
@@ -589,16 +621,17 @@ int main(int argc, char* argv[])
                         {
                             puts("Invalid movment! Try again.");
                         }
-                    }
+                    }*/
                     PrintScoreTable();
                     PrintBoard(board);
+                    free(players[playerIndex].movements);
                 }
             }
-            currentturn++;
-            if(currentturn > numOfPenguins) // if all penguins are placed switch to the movement phase
+            if(currentturn >= numOfPenguins) // if all penguins are placed switch to the movement phase
             {
                 phase = movementPhase;
             }
+            currentturn++;
         }
     }
     printf("End of the game. Type any key to exit\n");
