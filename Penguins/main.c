@@ -471,6 +471,7 @@ void RemovePlayers(struct Player* players, int numOfPlayers) // free memory
 void ReadBoard(int board[cols][rows], char* fname)
 {
     int i, j, k;
+    int numOfFieldsToPlacePeng = 0; // Number of fields with exactly one fish
 	FILE * fPointer = NULL;
 	fPointer = fopen(fname, "r");
     if(fPointer == NULL)
@@ -490,18 +491,32 @@ void ReadBoard(int board[cols][rows], char* fname)
 		for (j = 0; j < rows; j++)
         {
             fscanf(fPointer, "%d ", &board[j][i]);
+            if(board[j][i] == 1)
+            {
+                numOfFieldsToPlacePeng++;
+            }
         }
 	}
 
 	//remove later
 	srand(time(NULL));
+    numOfFieldsToPlacePeng = 0;
 	for (i = 0; i < cols; i++)
 	{
 		for (j = 0; j < rows; j++)
         {
-            board[j][i] = rand()%3+1;
+            board[j][i] = rand() % 3 + 1;
+            if(board[j][i] == 1) 
+            {
+                numOfFieldsToPlacePeng++;
+            }
         }
 	}
+    if(numOfFieldsToPlacePeng < numOfPlayers*numOfPenguins)
+    {
+        puts("The board is invalid! Not enough fields to place all penguins.");
+        exit(0);
+    }
 
 	fscanf(fPointer, "%d/%d", &currentturn, &totalturns);
 
@@ -604,7 +619,7 @@ int main(int argc, char* argv[])
                     }
 
                     // remove later (it's for testing algotrithms)
-                    if(!players[playerIndex].lost)
+                    /*if(!players[playerIndex].lost)
                     {
                         struct Movement movement;
                         if(playerIndex % 2)  // player 2
@@ -624,9 +639,9 @@ int main(int argc, char* argv[])
                     else
                     {
                         printf("Player lost!!!\n");
-                    }
+                    }*/
 
-                    /*bool success = false;
+                    bool success = false;
                     while(!success)
                     {
                         struct Coordinates new_coords;
@@ -642,7 +657,7 @@ int main(int argc, char* argv[])
                         {
                             puts("Invalid movment! Try again.");
                         }
-                    }*/
+                    }
                     PrintScoreTable();
                     PrintBoard(board);
                     free(players[playerIndex].movements);
