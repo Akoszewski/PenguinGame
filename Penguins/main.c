@@ -30,6 +30,7 @@ int numOfPlayers;
 int numOfPenguins; // number of penguins for each player
 char inputboardfile[64];
 char outputboardfile[64];
+int currentPlayerIndex;
 
 int cols; // number of columns
 int rows; // number of rows
@@ -81,6 +82,7 @@ bool ReadArgs(int argc, char* argv[])
         printf("No parameters passed. The program will be opened in interactive mode.\n\n");
         return false;
     }
+    currentPlayerIndex = atoi(arg[0]) - 1;
     if(strcmp(argv[1], "phase=placement") == 0) // 0 means the strings are equal
     {
         phase = placementPhase;
@@ -468,6 +470,42 @@ void RemovePlayers(struct Player* players, int numOfPlayers) // free memory
     free(players);
 }
 
+void WriteBoard(int board[cols][rows], char* fname)
+{
+    int i, j, k;
+    int numOfFieldsToPlacePeng = 0; // Number of fields with exactly one fish
+	FILE * fPointer = NULL;
+	fPointer = fopen(fname, "w");
+    if(fPointer == NULL)
+    {
+        printf("Can not open file! \n");
+        exit(0);
+    }
+
+	fprintf(fPointer, "%d %d\n", numOfPlayers, numOfPenguins);
+	fprintf(fPointer, "%d %d\n", cols, rows);
+
+
+	for (i = 0; i < cols; i++)
+	{
+		for (j = 0; j < rows; j++)
+        {
+            fprintf(fPointer, "%d ", board[j][i]);
+        }
+        fprintf(fPointer, "\n");
+	}
+
+
+	fprintf(fPointer, "%d/%d", currentturn, totalturns);
+	fprintf(fPointer, "\n");
+	for(k = 0; k < numOfPlayers; k++)
+    {
+        fprintf(fPointer, "%d ", players[k].score);
+    }
+    fclose(fPointer);
+}
+
+
 void ReadBoard(int board[cols][rows], char* fname)
 {
     int i, j, k;
@@ -506,7 +544,7 @@ void ReadBoard(int board[cols][rows], char* fname)
 		for (j = 0; j < rows; j++)
         {
             board[j][i] = rand() % 3 + 1;
-            if(board[j][i] == 1) 
+            if(board[j][i] == 1)
             {
                 numOfFieldsToPlacePeng++;
             }
@@ -647,7 +685,7 @@ int main(int argc, char* argv[])
                         struct Coordinates new_coords;
                         struct MovementInSteps movement = ReadMovement(playerIndex);
 
-                        if(TryMovement(board, players[playerIndex].penguins[movement.penguinIndex].coords, movement, &new_coords)) 
+                        if(TryMovement(board, players[playerIndex].penguins[movement.penguinIndex].coords, movement, &new_coords))
                         {
                             players[playerIndex].score += board[new_coords.x][new_coords.y];
                             UpdatePenguinPosition(board, &players[playerIndex].penguins[movement.penguinIndex], numOfPenguins*playerIndex + movement.penguinIndex, new_coords); // tab with board, penguin by reference, index of penguin, new coordinates
