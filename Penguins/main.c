@@ -433,7 +433,8 @@ struct MovementInSteps ReadMovement(int playerIndex)
 
 bool EndGame()
 {
-    if(currentturn > totalturns) return true;
+    if(currentturn > totalturns) 
+        return true;
     return false;
 }
 
@@ -592,11 +593,6 @@ void PrintInitialGameState()
     printf("Number of penguins: %d\n", numOfPenguins);
 }
 
-void PrintGameState()
-{
-
-}
-
 int main(int argc, char* argv[])
 {
     int i;
@@ -637,7 +633,8 @@ int main(int argc, char* argv[])
         rows = 10;
         cols = 10;
         int board[cols][rows];
-        InitGame(board, "board.txt");
+        int counter = 0;
+        InitGame(board, "board1.txt");
         PrintInitialGameState(); // Prints num of players and penguins for each player
         PrintBoard(board);
         phase = placementPhase;
@@ -645,40 +642,39 @@ int main(int argc, char* argv[])
         while (!EndGame())
         {
             int playerIndex;
-            printf("Turn %d: \n", currentturn);
             for(playerIndex = 0; playerIndex < numOfPlayers; playerIndex++)
             {
+                if(players[playerIndex].lost)
+                {
+                    break;
+                }
                 printf("Player %d: \n", playerIndex + 1);
                 if(phase == placementPhase)
                 {
-                    struct Movement placement = ReadPlacement(board, players[playerIndex].penguins);
-                    //struct Movement placement = ChooseBestPlacement(board, players[playerIndex].penguins);
+                    //struct Movement placement = ReadPlacement(board, players[playerIndex].penguins);
+                    struct Movement placement = ChooseBestPlacement(board, players[playerIndex].penguins);
                     players[playerIndex].score += board[placement.coords.x][placement.coords.y];
                     SetPenguinPosition(board, &players[playerIndex].penguins[placement.penguinIndex], numOfPenguins*playerIndex + placement.penguinIndex, placement.coords);
                     PrintBoard(board);
                 }
                 else
                 {
+                    printf("Turn %d: \n", currentturn);
                     FindAllMovements(board, &players[playerIndex]);
                     if(players[playerIndex].numOfMovements == 0)
                     {
+                        printf("Player %d is blocked!\n", playerIndex + 1);
                         players[playerIndex].lost = true;
+                        break;
                     }
-
                     // remove later (it's for testing algotrithms)
-                    /*if(!players[playerIndex].lost)
-                    {
-                        struct Movement movement;
-                        movement = GetMaxFishes(board, players[playerIndex].movements, players[playerIndex].numOfMovements);
-                        players[playerIndex].score += board[movement.coords.x][movement.coords.y];
-                        UpdatePenguinPosition(board, &players[playerIndex].penguins[movement.penguinIndex], numOfPenguins*playerIndex + movement.penguinIndex, movement.coords);
-                    }
-                    else
-                    {
-                        printf("Player lost!!!\n");
-                    }
-                    */
-                    bool success = false;
+                    struct Movement movement;
+                    movement = GetMaxFishes(board, players[playerIndex].movements, players[playerIndex].numOfMovements);
+                    players[playerIndex].score += board[movement.coords.x][movement.coords.y];
+                    UpdatePenguinPosition(board, &players[playerIndex].penguins[movement.penguinIndex], numOfPenguins*playerIndex + movement.penguinIndex, movement.coords);
+                    
+
+                    /*bool success = false;
                     while(!success)
                     {
                         struct Coordinates new_coords;
@@ -695,20 +691,28 @@ int main(int argc, char* argv[])
                             puts("Invalid movment! Try again.");
                         }
                     }
+                    */
+
                     PrintScoreTable();
                     PrintBoard(board);
                     free(players[playerIndex].movements);
                 }
             }
-            if(currentturn >= numOfPenguins) // if all penguins are placed switch to the movement phase
+            if(phase == movementPhase) 
+            {
+                currentturn++;
+            }
+            if(counter >= numOfPenguins - 1) // if all penguins are placed switch to the movement phase
             {
                 phase = movementPhase;
             }
-            currentturn++;
+            counter++;
         }
     }
-    printf("End of the game. Type any key to exit\n"); // TODO: only in interarctive 
-    RemovePlayers(players, numOfPlayers);
+    printf("\n\nEnd of the game.\n"); // TODO: only in interarctive 
+    PrintScoreTable();
+    printf("Type any key to exit.\n");
+    RemovePlayers(players, numOfPlayers); // free memory
     getch();
     return 0;
 }
