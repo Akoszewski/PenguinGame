@@ -82,7 +82,7 @@ bool ReadArgs(int argc, char* argv[])
         printf("No parameters passed. The program will be opened in interactive mode.\n\n");
         return false;
     }
-    currentPlayerIndex = atoi(arg[0]) - 1;
+    currentPlayerIndex = atoi(argv[0]) - 1;
     if(strcmp(argv[1], "phase=placement") == 0) // 0 means the strings are equal
     {
         phase = placementPhase;
@@ -100,7 +100,7 @@ bool ReadArgs(int argc, char* argv[])
     {
         if(strncmp(argv[2], "penguins=", 9) == 0) // if first 9 letters are equal to "penguins="
         {
-            numOfPenguins = atoi(&argv[2][9]); // convert numbers after "=" to int and assign it to penguinsNum
+            numOfPenguins = atoi(&argv[2][9]); // convert numbers after "=" to int and assign it to numOfPenguins
         }
         else
         {
@@ -523,7 +523,6 @@ void ReadBoard(int board[cols][rows], char* fname)
 	fscanf(fPointer, "%d %d\n", &cols, &rows);
 
     players = CreatePlayers(numOfPlayers, numOfPenguins);
-
 	for (i = 0; i < cols; i++)
 	{
 		for (j = 0; j < rows; j++)
@@ -533,11 +532,17 @@ void ReadBoard(int board[cols][rows], char* fname)
             {
                 numOfFieldsToPlacePeng++;
             }
+            if(board[j][i] > 3) // necessary in tournament mode
+            {
+                int index = board[j][i] - currentPlayerIndex * numOfPenguins - 4;
+                players[currentPlayerIndex].penguins[index].placed = true;
+            }
+
         }
 	}
 
 	//remove later
-	srand(time(NULL));
+	/*srand(time(NULL));
     numOfFieldsToPlacePeng = 0;
 	for (i = 0; i < cols; i++)
 	{
@@ -549,7 +554,7 @@ void ReadBoard(int board[cols][rows], char* fname)
                 numOfFieldsToPlacePeng++;
             }
         }
-	}
+	}*/
     if(numOfFieldsToPlacePeng < numOfPlayers*numOfPenguins)
     {
         puts("The board is invalid! Not enough fields to place all penguins.");
@@ -595,30 +600,33 @@ int main(int argc, char* argv[])
     if( ReadArgs(argc, argv) )
     {
         //Batch mode
-
-        // Very early sketch
-
-        //ReadBoard();
+        cols = 10;
+        rows = 10;
+        int board[cols][rows];
+        ReadBoard(board, inputboardfile);
+        PrintBoard(board);
         if (phase == placementPhase)
         {
-            //ChooseBestPlacement();   // number of fishes on floe must be equal to 1 !!!
-            //UpdatePenguinPosition();
-            //UpdateBoard();
+            struct Movement placement = ChooseBestPlacement(board, players[currentPlayerIndex].penguins);
+            players[currentPlayerIndex].score += board[placement.coords.x][placement.coords.y];
+            SetPenguinPosition(board, &players[currentPlayerIndex].penguins[placement.penguinIndex], numOfPenguins*currentPlayerIndex + placement.penguinIndex, placement.coords);
         }
         else
         {
-            //ChooseBestMovement();  // the more fishes the better
-            //UpdatePenguinPosition();
-            //UpdateBoard();
+            struct Movement movement = GetMaxFishes(board, players[currentPlayerIndex].movements, players[currentPlayerIndex].numOfMovements);
+            players[currentPlayerIndex].score += board[movement.coords.x][movement.coords.y];
+            UpdatePenguinPosition(board, &players[currentPlayerIndex].penguins[movement.penguinIndex], numOfPenguins*currentPlayerIndex + movement.penguinIndex, movement.coords); // tab with board, penguin by reference, index of penguin, new coordinates
         }
+        //Update num of turns
+        WriteBoard(board, outputboardfile);
 
         // remove later
+        printf("%d\n", currentPlayerIndex);
         if(phase == movementPhase) printf("Phase is: movement\n");
         else printf("Phase is: placement\n");
         printf("Penguins number is: %d\n", numOfPenguins);
         printf("Input file is: %s\n", inputboardfile);
         printf("Output file is: %s\n", outputboardfile);
-
     }
     else
     {
@@ -642,8 +650,8 @@ int main(int argc, char* argv[])
                 printf("Player %d: \n", playerIndex + 1);
                 if(phase == placementPhase)
                 {
-                    //struct Movement placement = ReadPlacement(board, players[playerIndex].penguins);
-                    struct Movement placement = ChooseBestPlacement(board, players[playerIndex].penguins);
+                    struct Movement placement = ReadPlacement(board, players[playerIndex].penguins);
+                    //struct Movement placement = ChooseBestPlacement(board, players[playerIndex].penguins);
                     players[playerIndex].score += board[placement.coords.x][placement.coords.y];
                     SetPenguinPosition(board, &players[playerIndex].penguins[placement.penguinIndex], numOfPenguins*playerIndex + placement.penguinIndex, placement.coords);
                     PrintBoard(board);
@@ -660,25 +668,15 @@ int main(int argc, char* argv[])
                     /*if(!players[playerIndex].lost)
                     {
                         struct Movement movement;
-                        if(playerIndex % 2)  // player 2
-                        {
-                            movement = GetMaxFishes(board, players[playerIndex].movements, players[playerIndex].numOfMovements);
-                            //movement = players[playerIndex].movements[0]; // first movement from array (moving in an order)
-                        }
-                        else // player 1
-                        {
-                            int movementInd;
-                            movementInd = rand() % players[playerIndex].numOfMovements; // random (chaotic) movement
-                            movement = players[playerIndex].movements[movementInd];
-                        }
+                        movement = GetMaxFishes(board, players[playerIndex].movements, players[playerIndex].numOfMovements);
                         players[playerIndex].score += board[movement.coords.x][movement.coords.y];
                         UpdatePenguinPosition(board, &players[playerIndex].penguins[movement.penguinIndex], numOfPenguins*playerIndex + movement.penguinIndex, movement.coords);
                     }
                     else
                     {
                         printf("Player lost!!!\n");
-                    }*/
-
+                    }
+                    */
                     bool success = false;
                     while(!success)
                     {
@@ -708,7 +706,7 @@ int main(int argc, char* argv[])
             currentturn++;
         }
     }
-    printf("End of the game. Type any key to exit\n");
+    printf("End of the game. Type any key to exit\n"); // TODO: only in interarctive 
     RemovePlayers(players, numOfPlayers);
     getch();
     return 0;
