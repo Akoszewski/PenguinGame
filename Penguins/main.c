@@ -470,7 +470,7 @@ void RemovePlayers(struct Player* players, int numOfPlayers) // free memory
     free(players);
 }
 
-void WriteBoard(int board[cols][rows], char* fname)
+void SaveGame(int board[cols][rows], char* fname)
 {
     int i, j, k;
     int numOfFieldsToPlacePeng = 0; // Number of fields with exactly one fish
@@ -485,16 +485,17 @@ void WriteBoard(int board[cols][rows], char* fname)
 	fprintf(fPointer, "%d %d\n", numOfPlayers, numOfPenguins);
 	fprintf(fPointer, "%d %d\n", cols, rows);
 
-
+    fprintf(fPointer, "\n");
 	for (i = 0; i < cols; i++)
 	{
-		for (j = 0; j < rows; j++)
+        if(i%2 == 1) fprintf(fPointer, " ");
+		for (j = 0; j < rows; j++) 
         {
             fprintf(fPointer, "%d ", board[j][i]);
         }
         fprintf(fPointer, "\n");
 	}
-
+    fprintf(fPointer, "\n");
 
 	fprintf(fPointer, "%d/%d", currentturn, totalturns);
 	fprintf(fPointer, "\n");
@@ -506,7 +507,7 @@ void WriteBoard(int board[cols][rows], char* fname)
 }
 
 
-void ReadBoard(int board[cols][rows], char* fname)
+void InitGame(int board[cols][rows], char* fname)
 {
     int i, j, k;
     int numOfFieldsToPlacePeng = 0; // Number of fields with exactly one fish
@@ -532,10 +533,12 @@ void ReadBoard(int board[cols][rows], char* fname)
             {
                 numOfFieldsToPlacePeng++;
             }
-            if(board[j][i] > 3) // necessary in tournament mode
+            if(board[j][i] > 3) 
             {
                 int index = board[j][i] - currentPlayerIndex * numOfPenguins - 4;
                 players[currentPlayerIndex].penguins[index].placed = true;
+                players[currentPlayerIndex].penguins[index].coords.x = j;
+                players[currentPlayerIndex].penguins[index].coords.y = i;
             }
 
         }
@@ -603,7 +606,7 @@ int main(int argc, char* argv[])
         cols = 10;
         rows = 10;
         int board[cols][rows];
-        ReadBoard(board, inputboardfile);
+        InitGame(board, inputboardfile);
         PrintBoard(board);
         if (phase == placementPhase)
         {
@@ -613,30 +616,28 @@ int main(int argc, char* argv[])
         }
         else
         {
-            struct Movement movement = GetMaxFishes(board, players[currentPlayerIndex].movements, players[currentPlayerIndex].numOfMovements);
-            players[currentPlayerIndex].score += board[movement.coords.x][movement.coords.y];
-            UpdatePenguinPosition(board, &players[currentPlayerIndex].penguins[movement.penguinIndex], numOfPenguins*currentPlayerIndex + movement.penguinIndex, movement.coords); // tab with board, penguin by reference, index of penguin, new coordinates
+            FindAllMovements(board, &players[currentPlayerIndex]);
+            if(players[currentPlayerIndex].numOfMovements > 0) // if player is not lost
+            {
+                struct Movement movement = GetMaxFishes(board, players[currentPlayerIndex].movements, players[currentPlayerIndex].numOfMovements);
+                players[currentPlayerIndex].score += board[movement.coords.x][movement.coords.y];
+                UpdatePenguinPosition(board, &players[currentPlayerIndex].penguins[movement.penguinIndex], numOfPenguins*currentPlayerIndex + movement.penguinIndex, movement.coords); // tab with board, penguin by reference, index of penguin, new coordinates
+                PrintBoard(board);
+            }       
+            if (currentPlayerIndex == numOfPlayers - 1)
+            {
+                currentturn++;
+            }                             
         }
-        //Update num of turns
-        WriteBoard(board, outputboardfile);
-
-        // remove later
-        printf("%d\n", currentPlayerIndex);
-        if(phase == movementPhase) printf("Phase is: movement\n");
-        else printf("Phase is: placement\n");
-        printf("Penguins number is: %d\n", numOfPenguins);
-        printf("Input file is: %s\n", inputboardfile);
-        printf("Output file is: %s\n", outputboardfile);
+        SaveGame(board, outputboardfile);
     }
     else
     {
         // Interactive mode
-
-
         rows = 10;
         cols = 10;
         int board[cols][rows];
-        ReadBoard(board, "board.txt");
+        InitGame(board, "board.txt");
         PrintInitialGameState(); // Prints num of players and penguins for each player
         PrintBoard(board);
         phase = placementPhase;
