@@ -304,17 +304,17 @@ struct Coordinates GetNeighbouringCoords(struct Coordinates curr, enum Direction
     return new_coords;
 }
 
-void SetPenguinPosition(struct Penguin *penguin, int index, struct Coordinates coords) // index is index of penguin
+void SetPenguinPosition(struct Penguin *penguin, int number, struct Coordinates coords) // number is (index of penguin) + (number of penguins for every player) * (index of current player)
 {
-    board[coords.x][coords.y] = 3 + 1 + index; // place penguin on new field
+    board[coords.x][coords.y] = 3 + 1 + number; // place penguin on new field
     penguin->coords = coords;
     penguin->placed = true;
 }
 
-void UpdatePenguinPosition(struct Penguin *penguin, int index, struct Coordinates coords) // index is index of penguin
+void UpdatePenguinPosition(struct Penguin *penguin, int number, struct Coordinates coords) 
 {
     board[penguin->coords.x][penguin->coords.y] = 0; // old floe disappears
-    board[coords.x][coords.y] = 3 + 1 + index;       // place penguin on new field
+    board[coords.x][coords.y] = 3 + 1 + number;      // place penguin on new field
     penguin->coords = coords;
 }
 
