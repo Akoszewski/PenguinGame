@@ -8,7 +8,7 @@
 #define true 1
 #define false 0
 
-#define SIZE 100
+#define SIZE 100  // 100*sizeof(struct Movement) is amount of allocated memory every time when allocation is needed
 
 enum Phase
 {
@@ -46,13 +46,12 @@ struct Coordinates
 struct Penguin
 {
     bool placed;
-    bool blocked;
     struct Coordinates coords;
 };
 
 struct Player
 {
-    bool lost;
+    bool blocked;
     int score;
     struct Penguin* penguins;
     struct Movement* movements;
@@ -194,26 +193,23 @@ bool IsFieldValid(struct Coordinates coords) // checks if a field is valid to mo
     }
 }
 
-/*struct Coordinates* FindPossiblePlacementsOfPeng()
+bool IsPossibleToPlacePenguin()
 {
     int i, j;
-    struct Coordinates* pengPlacements;
-    for(i = 0; i < rows; i++) 
+    for(i = 0; i < rows; i++)
     {
         for(j = 0; j < cols; j++)
         {
             if(board[j][i] == 1)
             {
-                pengPlacements[].x = j;
-                pengPlacements[].y = i;
-                AddToArray();
+                return true;
             }
         }
     }
-    return pengPlacements;
-}*/
+    return false;
+}
 
-struct Movement GetMaxFishes(struct Movement* movements, int numOfMovements)
+struct Movement ChooseBestMovement(struct Movement* movements, int numOfMovements)
 {
     int i;
     struct Movement bestMov = movements[0];
@@ -241,7 +237,7 @@ int TakeNextPenguinIndex(struct Penguin* penguins)
         penguinIndex++;
         if(penguinIndex > numOfPenguins)
         {
-            perror("Error of TakeNextPenguinIndex function, too big penguinIndex!");
+            puts("Error of TakeNextPenguinIndex function, there are no more penguins left! Maybe phase should be 'movement'?");
             exit(0);
         }
     }
@@ -385,26 +381,131 @@ struct Movement ReadPlacement(struct Penguin* penguins)
     return placement;
 }
 
-struct Movement ChooseBestPlacement(struct Penguin* penguins)
+int CountMovementsFromLocation(struct Coordinates initPos)
 {
+    int num = 0;
+    enum Direction direction;
+
+    for(direction = 0; direction < 6; direction++) //  6 directions
+    {
+        struct Coordinates new_coords = initPos;
+        while(true)
+        {
+            new_coords = GetNeighbouringCoords(new_coords, direction);
+            if(IsFieldValid(new_coords))
+            {
+                num++;
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
+    return num;
+}
+
+int CountMovementsOfPlayer(struct Penguin* penguins)
+{
+    int i;
+    int num = 0;
+    for(i = 0; i < numOfPenguins; i++)
+    {
+        num += CountMovementsFromLocation(penguins[i].coords);
+    }
+    return num;
+}
+
+struct Movement ChooseBestPlacement(struct Penguin* penguins) // Chooses location with maximum movements from it
+{
+    int i, j;
     struct Movement placement;
-    /*if(!IsPossibleToPlacePenguin())
+    struct Coordinates bestloc = {0, 0};
+    int bestlocscore = 0;
+    int currscore = 0;
+
+    if(!IsPossibleToPlacePenguin())
     {
         printf("There is not enough valid floes to place all penguins!\n");
         exit(0);
-    }*/
-    placement.penguinIndex = TakeNextPenguinIndex(penguins);
-    do
-    {
-        placement.coords.x = rand() % cols;
-        placement.coords.y = rand() % rows;
     }
-    while (board[placement.coords.x][placement.coords.y] != 1);
+
+    placement.penguinIndex = TakeNextPenguinIndex(penguins);
+
+    for(i = 0; i < rows; i++)
+    {
+        for(j = 0; j < cols; j++)
+        {
+            if(board[j][i] == 1)
+            {
+                placement.coords.x = j;
+                placement.coords.y = i;
+                currscore = CountMovementsFromLocation(placement.coords);
+                if(currscore > bestlocscore)
+                {
+                    bestlocscore = currscore;
+                    bestloc = placement.coords;
+                }
+                if(currscore == bestlocscore)
+                {
+                    if(rand() % 2) //  Element of randomness in case there will be many fields with the same number of possile movements from it
+                    {
+                        bestlocscore = currscore;
+                        bestloc = placement.coords;
+                    }
+                }
+            }
+        }
+    }
+    placement.coords = bestloc;
     return placement;
 }
 
-void FindAllMovements(struct Player* player) // fills the player's array of possible movements
+
+void FindAllMovementsOfPlayer(struct Player* player) // fills the player's array of possible movements
 {
+    int counter = 0;
+    if(player->movements != NULL)
+    {
+        free(player->movements);
+    }  
+    player->movements = (struct Movement*) malloc(SIZE * sizeof(struct Movement));
+    int penguinIndex = 0;
+    enum Direction direction = 0;
+    for(penguinIndex = 0; penguinIndex < numOfPenguins; penguinIndex++)
+    {
+        for(direction = 0; direction < 6; direction++) //  6 directions
+        {
+            struct Coordinates new_coords = player->penguins[penguinIndex].coords;
+            while(true)
+            {
+                new_coords = GetNeighbouringCoords(new_coords, direction);
+                if(IsFieldValid(new_coords)) // if movement is valid add it to the array
+                {
+                    player->movements[counter].penguinIndex = penguinIndex;
+                    player->movements[counter].coords = new_coords;
+                    counter++;
+
+                    if((counter % SIZE) == 0) // allocate new memory if needed
+                    {
+                        player->movements = (struct Movement*) realloc(player->movements, (counter + SIZE) * sizeof(struct Movement));
+                    }
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+    }
+}
+
+/*void FindAllMovementsOfPlayer(struct Player* player) // fills the player's array of possible movements
+{
+    if(player->movements != NULL)
+    {
+        free(player->movements);
+    }  
     player->movements = (struct Movement*) malloc(SIZE * sizeof(struct Movement));
     player->numOfMovements = 0;
     int penguinIndex = 0;
@@ -435,7 +536,7 @@ void FindAllMovements(struct Player* player) // fills the player's array of poss
             }
         }
     }
-}
+}*/
 
 struct MovementInSteps ReadMovement(int playerIndex)
 {
@@ -470,7 +571,7 @@ struct Player* CreatePlayers(int numOfPlayers, int numOfPenguins)  // creates pl
     for(i = 0; i < numOfPlayers; i++)
     {
         players[i].penguins = (struct Penguin*) malloc(numOfPenguins*sizeof(struct Penguin));
-        players[i].lost = false;
+        players[i].blocked = false;
         players[i].score = 0;
         players[i].numOfMovements = 0;
         players[i].movements = NULL;
@@ -479,7 +580,6 @@ struct Player* CreatePlayers(int numOfPlayers, int numOfPenguins)  // creates pl
             players[i].penguins[j].coords.x = -1;
             players[i].penguins[j].coords.y = -1;
             players[i].penguins[j].placed = false;
-            players[i].penguins[j].blocked = false;
         }
     }
     return players;
@@ -490,7 +590,7 @@ int** CreateBoard(int boardSizeX, int boardSizeY)
     int x, y;
     int** board = NULL;
     board = (int**)malloc(boardSizeX * sizeof(int*)); 
-    for (x = 0; x < boardSizeX; x++)000
+    for (x = 0; x < boardSizeX; x++)
     {
         board[x] = (int*)malloc(boardSizeY * sizeof(int));
     }
@@ -527,7 +627,7 @@ void SaveGame(char* fname)
 	fPointer = fopen(fname, "w");
     if(fPointer == NULL)
     {
-        printf("Can not open file! \n");
+        printf("Cannot open file! \n");
         exit(0);
     }
 
@@ -633,10 +733,10 @@ int main(int argc, char* argv[])
         }
         else
         {
-            FindAllMovements(&players[currentPlayerIndex]);
+            FindAllMovementsOfPlayer(&players[currentPlayerIndex]);
             if(players[currentPlayerIndex].numOfMovements > 0) // if player is not blocked
             {
-                struct Movement movement = GetMaxFishes(players[currentPlayerIndex].movements, players[currentPlayerIndex].numOfMovements);
+                struct Movement movement = ChooseBestMovement(players[currentPlayerIndex].movements, players[currentPlayerIndex].numOfMovements);
                 players[currentPlayerIndex].score += board[movement.coords.x][movement.coords.y];
                 UpdatePenguinPosition(&players[currentPlayerIndex].penguins[movement.penguinIndex], numOfPenguins*currentPlayerIndex + movement.penguinIndex, movement.coords); // tab with penguin by reference, index of penguin, new coordinates
                 PrintBoard();
@@ -647,6 +747,13 @@ int main(int argc, char* argv[])
             }                             
         }
         SaveGame(outputboardfile);
+        if(currentturn > totalturns)
+        {
+            printf("All turns passed.\n");
+            PrintScoreTable();
+            printf("End of the game.\n");
+            return 0;
+        }
     }
     else
     {
@@ -674,20 +781,21 @@ int main(int argc, char* argv[])
                 }
                 else
                 {
-                    FindAllMovements(&players[playerIndex]);
-                    if(!players[playerIndex].lost)
+                    players[playerIndex].numOfMovements = CountMovementsOfPlayer(players[playerIndex].penguins);
+                    FindAllMovementsOfPlayer(&players[playerIndex]);
+                    if(!players[playerIndex].blocked)
                     {
                         printf("Turn %d: \n\n", currentturn);
                         printf("Player %d: \n", playerIndex + 1);
                         if(players[playerIndex].numOfMovements == 0)
                         {
                             printf("Player %d is blocked!\n\n", playerIndex + 1);
-                            players[playerIndex].lost = true;
+                            players[playerIndex].blocked = true;
                             break;
                         }
                         // remove later (it's for testing algotrithms)
                         struct Movement movement;
-                        movement = GetMaxFishes(players[playerIndex].movements, players[playerIndex].numOfMovements);
+                        movement = ChooseBestMovement(players[playerIndex].movements, players[playerIndex].numOfMovements);
                         players[playerIndex].score += board[movement.coords.x][movement.coords.y];
                         UpdatePenguinPosition(&players[playerIndex].penguins[movement.penguinIndex], numOfPenguins*playerIndex + movement.penguinIndex, movement.coords);
 
@@ -727,7 +835,7 @@ int main(int argc, char* argv[])
             counter++;
         }
     }
-    printf("\n\nEnd of the game.\n"); // TODO: only in interarctive 
+    printf("\nEnd of the game.\n"); // TODO: only in interarctive 
     PrintScoreTable();
     //RemovePlayers(); // free memory
     //RemoveBoard();
