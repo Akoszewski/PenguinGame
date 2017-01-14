@@ -198,9 +198,9 @@ bool IsFieldValid(struct Coordinates coords) // checks if a field is valid to mo
 {
     int i, j;
     struct Coordinates* pengPlacements;
-    for(i = 0; i < cols; i++)
+    for(i = 0; i < rows; i++) 
     {
-        for(j = 0; j < rows; j++)
+        for(j = 0; j < cols; j++)
         {
             if(board[j][i] == 1)
             {
@@ -253,7 +253,7 @@ void PrintBoard()
     int c,r;
     printf("\n");
 
-    for( r = 0; r < rows; r++)
+    for(r = 0; r < rows; r++) 
     {
         if(r%2 == 1) printf(" ");
         for(c = 0; c < cols; c++)
@@ -489,8 +489,8 @@ int** CreateBoard(int boardSizeX, int boardSizeY)
 {
     int x, y;
     int** board = NULL;
-    board = (int**)malloc(boardSizeX * sizeof(int*));
-    for (x = 0 ; x < boardSizeX; x++)
+    board = (int**)malloc(boardSizeX * sizeof(int*)); 
+    for (x = 0; x < boardSizeX; x++)000
     {
         board[x] = (int*)malloc(boardSizeY * sizeof(int));
     }
@@ -511,10 +511,10 @@ void RemovePlayers() // free memory
 
 void RemoveBoard()
 {
-    int x;
-    for(x = 0; x < cols; ++x)
+    int y;
+    for(y = 0; y < rows; ++y)
     {
-        free(board[x]);
+        free(board[y]);
     }
     free(board);
 }
@@ -535,10 +535,10 @@ void SaveGame(char* fname)
 	fprintf(fPointer, "%d %d\n", cols, rows);
 
     fprintf(fPointer, "\n");
-	for (i = 0; i < cols; i++)
+	for (i = 0; i < rows; i++) 
 	{
         if(i%2 == 1) fprintf(fPointer, " ");
-		for (j = 0; j < rows; j++) 
+		for (j = 0; j < cols; j++) 
         {
             fprintf(fPointer, "%d ", board[j][i]);
         }
@@ -574,9 +574,9 @@ void InitGame(char* fname)
     players = CreatePlayers(numOfPlayers, numOfPenguins);
     board = CreateBoard(cols, rows);
 
-	for (i = 0; i < cols; i++)
+	for (i = 0; i < rows; i++) 
 	{
-		for (j = 0; j < rows; j++)
+		for (j = 0; j < cols; j++)
         {
             fscanf(fPointer, "%d ", &board[j][i]);
             if(board[j][i] > 3) 
@@ -729,9 +729,9 @@ int main(int argc, char* argv[])
     }
     printf("\n\nEnd of the game.\n"); // TODO: only in interarctive 
     PrintScoreTable();
+    //RemovePlayers(); // free memory
+    //RemoveBoard();
     printf("Type any key to exit.\n");
-    RemovePlayers(); // free memory
-    RemoveBoard();
     getch();
     return 0;
 }
