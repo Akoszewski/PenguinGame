@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <conio.h>
+//#include <conio.h> // enable only on Windows
+#include <termios.h>
 #include <time.h>
 #include <math.h>
 
@@ -75,6 +76,19 @@ struct MovementInSteps
     int jumps;
 };
 
+int getch(void) 
+{
+    struct termios oldattr, newattr;
+    int ch;
+    tcgetattr(0, &oldattr );
+    newattr = oldattr;
+    newattr.c_lflag &= ~( ICANON | ECHO );
+    tcsetattr(0, TCSANOW, &newattr );
+    ch = getchar();
+    tcsetattr(0, TCSANOW, &oldattr );
+    return ch;
+}
+
 void ReadArgs(int argc, char *argv[])
 {
 
@@ -135,7 +149,7 @@ int ReadIntWithMessage(char *message)
 enum Direction ReadDirectionWithMessage(char *message)
 {
     char input[3] = {' ', ' ', '\0'};
-    printf(message);
+    printf("%s", message);
     bool failed = false;
     do
     {
@@ -405,6 +419,7 @@ void FindAllMovementsOfPlayer(struct Player *player) // fills the player's array
     if (player->movements != NULL)
     {
         free(player->movements);
+        player->movements = NULL;
     }
     player->movements = (struct Movement *)malloc(SIZE * sizeof(struct Movement));
     int penguinIndex = 0;
@@ -670,7 +685,7 @@ void InitGame(char *fname)
     {
         printf("No input file found! \n");
         getch();
-        exit(0);
+        exit(-1);
     }
 
     fscanf(fPointer, "%d %d\n", &numOfPlayers, &numOfPenguins);
@@ -763,7 +778,7 @@ int main(int argc, char *argv[])
     // Interactive mode
     int i;
     int counter = 0;
-    InitGame("board1.txt");
+    InitGame("board.txt");
     phase = placementPhase;
 
     for (i = 0; i < numOfPlayers; i++)
@@ -868,8 +883,9 @@ int main(int argc, char *argv[])
     PrintScoreTable();
     printf("Type any key to exit.\n");
     getch();
+    fgetc(0);
 #endif
-    //RemovePlayers(); // free memory
-    //RemoveBoard();
+    RemovePlayers(); // free memory
+    RemoveBoard();
     return 0;
 }
